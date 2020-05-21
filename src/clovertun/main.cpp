@@ -1,10 +1,7 @@
 #include "UDPClient.h"
-#include "UDPServer.h"
 #include "XGetOpt.h"
 #include <Windows.h>
 #include <map>
-
-
 
 int main(int argc,char * argv[])
 {
@@ -74,17 +71,7 @@ int main(int argc,char * argv[])
         }
     }
 	
-	if (isServer)
-	{
-		CUDPServer* s = new CUDPServer(port);
-		s->Init();
-	}
-	else
-	{
-		CUDPClient* c = new CUDPClient(name , keyword, addr, port, (ClientRoleType)type);
-		c->Init();
-		c->Connect();
-	}
+	
 
 	getchar();
 }

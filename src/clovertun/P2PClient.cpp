@@ -1,12 +1,6 @@
 #include "stdafx.h"
 #include "UDPClient.h"
 
-#ifdef WIN32
-
-#define SIO_UDP_CONNRESET _WSAIOW(IOC_VENDOR, 12)
-
-#endif
-
 CUDPClient::CUDPClient(CHAR* ClientName, CHAR* Keyword, CHAR* ServerIP, WORD ServerPort, ClientRoleType Type) : CUDPBase()
 {
     strcpy(m_szName, ClientName);
@@ -19,11 +13,7 @@ CUDPClient::CUDPClient(CHAR* ClientName, CHAR* Keyword, CHAR* ServerIP, WORD Ser
 
     memset(&m_stRemoteClientInfo, 0, sizeof(CLIENT_INFO));
 
-#ifdef WIN32
-    BOOL bNewBehavior = FALSE;
-    DWORD dwBytesReturned = 0;
-    WSAIoctl(m_hSock, SIO_UDP_CONNRESET, &bNewBehavior, sizeof(bNewBehavior), NULL, 0, &dwBytesReturned, NULL, NULL);
-#endif
+
 
     //int reuseaddr = 1;
     //setsockopt(m_hSock, SOL_SOCKET, SO_REUSEADDR, (char*)&reuseaddr, sizeof(int));

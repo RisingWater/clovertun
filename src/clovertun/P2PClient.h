@@ -17,7 +17,6 @@
 #include <list>
 #include "UDPBase.h"
 
-#define UDP_PORT_BASE 30000
 
 typedef enum {
     CRT_SERVER = 0,

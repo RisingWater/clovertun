@@ -12,15 +12,33 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="P2PConnection.cpp" />
+    <ClCompile Include="P2PPacket.cpp" />
+    <ClCompile Include="P2PServer.cpp" />
+    <ClCompile Include="TCPBase.cpp" />
+    <ClCompile Include="TCPClient.cpp" />
+    <ClCompile Include="TCPCommon.cpp" />
+    <ClCompile Include="TCPServer.cpp" />
     <ClCompile Include="UDPClient.cpp" />
-    <ClCompile Include="UDPServer.cpp" />
     <ClCompile Include="UDPBase.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\include\clovertun\P2PProtocol.h" />
+    <ClInclude Include="P2PConnection.h" />
+    <ClInclude Include="P2PPacket.h" />
+    <ClInclude Include="P2PServer.h" />
+    <ClInclude Include="TCPBase.h" />
+    <ClInclude Include="TCPClient.h" />
+    <ClInclude Include="TCPCommon.h" />
+    <ClInclude Include="TCPServer.h" />
     <ClInclude Include="UDPClient.h" />
-    <ClInclude Include="UDPServer.h" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="UDPBase.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\corelib\corelib.vcxproj">
+      <Project>{6162410e-47fd-4b76-9d7d-37be6a41293a}</Project>
+    </ProjectReference>
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{E08A53BF-7B8A-4561-AEC3-53C926F680C6}</ProjectGuid>
@@ -72,6 +90,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>WIN32;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <DisableSpecificWarnings>4996</DisableSpecificWarnings>
+      <AdditionalIncludeDirectories>$(SolutionDir)include/BaseObject;$(SolutionDir)include/clovertun;$(SolutionDir)include/corelib</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>

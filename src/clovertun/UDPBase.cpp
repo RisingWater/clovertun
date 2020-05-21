@@ -1,6 +1,10 @@
 #include "stdafx.h"
 #include "UDPBase.h"
 
+#ifdef WIN32
+#define SIO_UDP_CONNRESET _WSAIOW(IOC_VENDOR, 12)
+#endif
+
 static BOOL IsCheckSumVaild(UDPBASE_PACKET Packet)
 {
 	BYTE checkS = 0;
@@ -34,23 +38,20 @@ CUDPBase::CUDPBase()
 
     m_hStopEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
     m_hSendEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
-    m_hRecvEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
     m_hRecvThread = NULL;
     m_hSendThread = NULL;
-    m_hDealThread = NULL;
+
+    m_pfnRecvFunc = NULL;
+    m_pRecvParam = NULL;
+
+    m_dwLocalPort = 0;
 
     InitializeCriticalSection(&m_csSendLock);
-    InitializeCriticalSection(&m_csRecvLock);
+    InitializeCriticalSection(&m_csRecvFunc);
 }
 
 CUDPBase::~CUDPBase()
 {
-    if (m_hSock != INVALID_SOCKET)
-    {
-        closesocket(m_hSock);
-        m_hSock = INVALID_SOCKET;
-    }
-
     if (m_hRecvThread)
     {
         CloseHandle(m_hRecvThread);
@@ -61,23 +62,13 @@ CUDPBase::~CUDPBase()
         CloseHandle(m_hSendThread);
     }
 
-    if (m_hDealThread)
-    {
-        CloseHandle(m_hDealThread);
-    }
-
     if (m_hSendEvent)
     {
         CloseHandle(m_hSendEvent);
     }
 
-    if (m_hRecvEvent)
-    {
-        CloseHandle(m_hSendEvent);
-    }
-
     DeleteCriticalSection(&m_csSendLock);
-    DeleteCriticalSection(&m_csRecvLock);
+    DeleteCriticalSection(&m_csRecvFunc);
 }
 
 DWORD WINAPI CUDPBase::RecvProc(void* pParam)
@@ -91,21 +82,9 @@ DWORD WINAPI CUDPBase::RecvProc(void* pParam)
         }
     }
 
+    udp->Release();
+
 	return 0;
-}
-
-DWORD WINAPI CUDPBase::DealProc(void* pParam)
-{
-    CUDPBase* udp = (CUDPBase*)pParam;
-    while (TRUE)
-    {
-        if (!udp->DealProcess(udp->m_hStopEvent))
-        {
-            break;
-        }
-    }
-
-    return 0;
 }
 
 DWORD WINAPI CUDPBase::SendProc(void* pParam)
@@ -119,14 +98,39 @@ DWORD WINAPI CUDPBase::SendProc(void* pParam)
         }
     }
 
+    udp->Release();
+
 	return 0;
 }
 
-BOOL CUDPBase::Init()
+BOOL CUDPBase::Init(WORD UdpPort)
 {
-    m_hSendThread = CreateThread(NULL, 0, CUDPBase::DealProc, this, 0, NULL);
+    m_dwLocalPort = UdpPort;
+
+    struct sockaddr_in servAddr;
+    memset(&servAddr, 0, sizeof(struct sockaddr_in));
+    servAddr.sin_family = PF_INET;
+    servAddr.sin_addr.s_addr = htonl(INADDR_ANY);
+    servAddr.sin_port = htons(m_dwLocalPort);
+
+    int res = bind(m_hSock, (SOCKADDR*)&servAddr, sizeof(SOCKADDR));
+
+    if (res < 0)
+    {
+        return FALSE;
+    }
+
+#ifdef WIN32
+    BOOL bNewBehavior = FALSE;
+    DWORD dwBytesReturned = 0;
+    WSAIoctl(m_hSock, SIO_UDP_CONNRESET, &bNewBehavior, sizeof(bNewBehavior), NULL, 0, &dwBytesReturned, NULL, NULL);
+#endif
+
+    AddRef();
+    m_hSendThread = CreateThread(NULL, 0, CUDPBase::SendProc, this, 0, NULL);
+
+    AddRef();
     m_hRecvThread = CreateThread(NULL, 0, CUDPBase::RecvProc, this, 0, NULL);
-    m_hDealThread = CreateThread(NULL, 0, CUDPBase::SendProc, this, 0, NULL);
 
     return TRUE;
 }
@@ -134,6 +138,9 @@ BOOL CUDPBase::Init()
 VOID CUDPBase::Done()
 {
     SetEvent(m_hStopEvent);
+
+    RegisterRecvProcess(NULL, NULL);
+
     if (m_hSock != INVALID_SOCKET)
     {
         closesocket(m_hSock);
@@ -141,8 +148,32 @@ VOID CUDPBase::Done()
     }
 }
 
-VOID CUDPBase::SendPacket(UDP_PACKET Packet)
+VOID CUDPBase::RegisterRecvProcess(_UDPRecvPacketProcess Process, CBaseObject* Param)
 {
+    CBaseObject* pOldParam = NULL;
+
+    EnterCriticalSection(&m_csRecvFunc);
+    m_pfnRecvFunc = Process;
+
+    pOldParam = m_pRecvParam;
+    m_pRecvParam = Param;
+    if (m_pRecvParam)
+    {
+        m_pRecvParam->AddRef();
+    }
+
+    LeaveCriticalSection(&m_csRecvFunc);
+
+    if (pOldParam)
+    {
+        pOldParam->Release();
+    }
+}
+
+VOID CUDPBase::SendPacket(UDP_PACKET* Packet)
+{
+    CalcCheckSum(&Packet->BasePacket);
+
     EnterCriticalSection(&m_csSendLock);
     m_SendList.push_back(Packet);
     SetEvent(m_hSendEvent);
@@ -152,12 +183,13 @@ VOID CUDPBase::SendPacket(UDP_PACKET Packet)
 
 BOOL CUDPBase::RecvProcess(HANDLE StopEvent)
 {
+    BOOL Ret = FALSE;
     sockaddr_in otherInfo;
     int otherInfoSize = sizeof(struct sockaddr);
 
     UDP_PACKET Packet;
     memset(&Packet, 0, sizeof(UDP_PACKET));
-	
+
     int length = recvfrom(m_hSock, (char*)&Packet.BasePacket, sizeof(UDPBASE_PACKET), 0, (struct sockaddr*)&otherInfo, &otherInfoSize);
 
     if (length < 0)
@@ -168,19 +200,28 @@ BOOL CUDPBase::RecvProcess(HANDLE StopEvent)
 
     if (!IsCheckSumVaild(Packet.BasePacket))
     {
-        DBG("UDP包数据检验位错误\n");
-        return FALSE;
+        DBG("check sum error\n");
+        return TRUE;
     }
 
     memcpy(&Packet.PacketInfo.ipaddr, &otherInfo.sin_addr, sizeof(ADDRESS));
     Packet.PacketInfo.port = otherInfo.sin_port;
 
-    EnterCriticalSection(&m_csRecvLock);
-    m_RecvList.push_back(Packet);
-    SetEvent(m_hRecvEvent);
-    LeaveCriticalSection(&m_csRecvLock);
+    EnterCriticalSection(&m_csRecvFunc);
 
-    return TRUE;
+    if (m_pfnRecvFunc)
+    {
+        Ret = m_pfnRecvFunc(&Packet, this, m_pRecvParam);
+    }
+
+    LeaveCriticalSection(&m_csRecvFunc);
+
+    if (!Ret)
+    {
+        DBG("Process Packet failed, stop recv thread\n");
+    }
+
+    return Ret;
 }
 
 BOOL CUDPBase::SendProcess(HANDLE StopEvent)
@@ -199,7 +240,7 @@ BOOL CUDPBase::SendProcess(HANDLE StopEvent)
     EnterCriticalSection(&m_csSendLock);
     if (!m_SendList.empty())
     {
-        UDP_PACKET Packet = m_SendList.front();
+        UDP_PACKET* Packet = m_SendList.front();
         m_SendList.pop_front();
 
         LeaveCriticalSection(&m_csSendLock);
@@ -207,49 +248,17 @@ BOOL CUDPBase::SendProcess(HANDLE StopEvent)
         struct sockaddr_in servAddr;
         memset(&servAddr, 0, sizeof(struct sockaddr_in));
         servAddr.sin_family = AF_INET;
-        memcpy(&servAddr.sin_addr, &Packet.PacketInfo.ipaddr, sizeof(ADDRESS));
-        servAddr.sin_port = Packet.PacketInfo.port;
+        memcpy(&servAddr.sin_addr, &Packet->PacketInfo.ipaddr, sizeof(ADDRESS));
+        servAddr.sin_port = Packet->PacketInfo.port;
 
-        CalcCheckSum(&Packet.BasePacket);
+		sendto(m_hSock, (char*)&Packet->BasePacket, sizeof(UDPBASE_PACKET), 0, (struct sockaddr*)&servAddr, sizeof(struct sockaddr_in));
 
-		sendto(m_hSock, (char*)&Packet.BasePacket, sizeof(UDPBASE_PACKET), 0, (struct sockaddr*)&servAddr, sizeof(struct sockaddr_in));
+        free(Packet);
     }
     else
     {
         ResetEvent(m_hSendEvent);
         LeaveCriticalSection(&m_csSendLock);
-    }
-
-    return TRUE;
-}
-
-BOOL CUDPBase::DealProcess(HANDLE StopEvent)
-{
-    HANDLE h[2] = {
-        m_hRecvEvent,
-        m_hStopEvent,
-    };
-
-    DWORD Ret = WaitForMultipleObjects(2, h, FALSE, INFINITE);
-    if (Ret != WAIT_OBJECT_0)
-    {
-        return FALSE;
-    }
-
-    EnterCriticalSection(&m_csRecvLock);
-    if (!m_RecvList.empty())
-    {
-        UDP_PACKET Packet = m_RecvList.front();
-        m_RecvList.pop_front();
-
-        LeaveCriticalSection(&m_csRecvLock);
-
-        RecvPacketProcess(Packet);
-    }
-    else
-    {
-        ResetEvent(m_hRecvEvent);
-        LeaveCriticalSection(&m_csRecvLock);
     }
 
     return TRUE;
