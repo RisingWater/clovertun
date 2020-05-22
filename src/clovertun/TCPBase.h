@@ -17,8 +17,8 @@
 
 class CTCPBase;
 
-typedef BOOL(*_TCPRecvPacketProcess)(BASE_PACKET_T* Packet, CTCPBase* tcp, CBaseObject* Param);
-typedef BOOL(*_TCPEndProcess)(CTCPBase* tcp, CBaseObject* Param);
+typedef BOOL (*_TCPRecvPacketProcess)(BASE_PACKET_T* Packet, CTCPBase* tcp, CBaseObject* Param);
+typedef VOID (*_TCPEndProcess)(CTCPBase* tcp, CBaseObject* Param);
 
 class CTCPBase : public CBaseObject
 {

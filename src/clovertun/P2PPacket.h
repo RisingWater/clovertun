@@ -10,9 +10,19 @@
 #endif
 
 #include "BasePacket.h"
+#include "P2PProtocol.h"
 
-BASE_PACKET_T* CreateTCPInit(DWORD tcpid);
-BASE_PACKET_T* CreateTCPStartUDP(DWORD tcpid, CHAR* Keyword);
-BASE_PACKET_T* CreateTCPResult(DWORD type, DWORD tcpid, DWORD result);
+BASE_PACKET_T* CreateTCPInitPkt(DWORD tcpid, WORD UDPPort);
+BASE_PACKET_T* CreateTCPStartUDPPkt(DWORD tcpid, CHAR* Keyword);
+BASE_PACKET_T* CreateTCPResultPkt(DWORD type, DWORD tcpid, DWORD result);
+BASE_PACKET_T* CreateTCPStartPunchingPkt(DWORD tcpid, DWORD PeerId, CLIENT_INFO* Info);
+
+BASE_PACKET_T* CreateTCPWaitPkt(DWORD tcpid, CHAR* Keyword, CHAR* name);
+BASE_PACKET_T* CreateTCPConnPkt(DWORD tcpid, CHAR* Keyword, CHAR* name);
+BASE_PACKET_T* CreateTCPProxyRequest(DWORD tcpid, CHAR* Keyword, CHAR* name);
+
+BASE_PACKET_T* CreateTCPProxyResultPkt(DWORD tcpid, DWORD peerid, DWORD result);
+BASE_PACKET_T* CreateTCPProxyData(TCP_PROXY_DATA* Data, DWORD Length);
+
 
 #endif

@@ -1,3 +1,4 @@
+#include "stdafx.h"
 #include "TCPBase.h"
 #include "TCPCommon.h"
 
@@ -63,6 +64,8 @@ BOOL CTCPBase::InitBase()
 
 	m_hRecvThread = CreateThread(NULL, 0, CTCPBase::RecvProc, this, 0, NULL);
 	m_hSendThread = CreateThread(NULL, 0, CTCPBase::SendProc, this, 0, NULL);
+
+    return TRUE;
 }
 
 VOID CTCPBase::DoneBase()
@@ -189,7 +192,6 @@ BOOL CTCPBase::SendProcess(HANDLE StopEvent)
 BOOL CTCPBase::RecvProcess(HANDLE StopEvent)
 {
 	BOOL Ret = FALSE;
-	int otherInfoSize = sizeof(struct sockaddr);
 
 	BYTE Buffer[4096];
 	BASE_PACKET_T* Packet = NULL;

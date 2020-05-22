@@ -15,16 +15,6 @@
 #include "UDPBase.h"
 #include "P2PProtocol.h"
 
-typedef enum
-{
-    TCP_LISTENING = 0,
-    TCP_CONNECTED,
-    UDP_LISTENING,
-    UDP_CONNECTED,
-    P2P_PUNCHING,
-    P2P_CONNECTED,
-} P2P_STATUS;
-
 class CP2PConnection : public CBaseObject
 {
 public:
@@ -33,9 +23,20 @@ public:
 
     P2P_STATUS GetStatus();
 
-    int TCPConnected(TCP_CONN_PACKET* PacketData, CTCPServer* Server);
-    int UDPListening(CLIENT_INFO* ClientInfo);
-    int UDPConnected(CLIENT_INFO* ClientInfo);
+    const CHAR* GetKeyword();
+
+    BOOL IsMainTCPServer(CTCPServer* tcp);
+    BOOL IsConnTCPServer(CTCPServer* tcp);
+
+    VOID ConnTCPDisconnect();
+    VOID MainTCPDisconnect();
+
+    DWORD TCPConnected(TCP_CONN_PACKET* PacketData, CTCPServer* Server);
+    DWORD UDPListening(CLIENT_INFO* ClientInfo);
+    DWORD UDPConnected(CLIENT_INFO* ClientInfo);
+
+    DWORD TCPProxyRequest();
+    DWORD TCPDataProxy(TCP_PROXY_DATA* Data, DWORD Length);
 
 private:
     CHAR                 m_szKeyword[KEYWORD_SIZE];

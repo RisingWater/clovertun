@@ -183,6 +183,8 @@ VOID CUDPBase::SendPacket(UDP_PACKET* Packet)
 
 BOOL CUDPBase::RecvProcess(HANDLE StopEvent)
 {
+    UNREFERENCED_PARAMETER(StopEvent);
+
     BOOL Ret = FALSE;
     sockaddr_in otherInfo;
     int otherInfoSize = sizeof(struct sockaddr);
@@ -228,7 +230,7 @@ BOOL CUDPBase::SendProcess(HANDLE StopEvent)
 {
     HANDLE h[2] = {
         m_hSendEvent,
-        m_hStopEvent,
+        StopEvent,
     };
 
     DWORD Ret = WaitForMultipleObjects(2, h, FALSE, INFINITE);

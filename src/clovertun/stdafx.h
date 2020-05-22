@@ -7,11 +7,12 @@
 #include <string.h>
 #include <stdlib.h>
 
-#ifndef WIN32
+#ifdef WIN32
+#include <WinSock2.h>
 #include <windows.h>
-#define closesocket close
+#pragma warning(disable:4127)
 #else
-
+#define closesocket close
 #endif
 
 #define DBG printf

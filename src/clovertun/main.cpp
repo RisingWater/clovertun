@@ -1,32 +1,48 @@
-#include "UDPClient.h"
+#include "stdafx.h"
 #include "XGetOpt.h"
-#include <Windows.h>
-#include <map>
+
+#include "P2PServer.h"
+#include "P2PHost.h"
 
 int main(int argc,char * argv[])
 {
 	int c;
-	char name[64];
-	char addr[64];
-	int port;
-	char keyword[32];
-	int type = 0;
+	char name[64] = {0};
+    char addr[64] = {0};
+	int port = 0;
+	char keyword[32] = {0};
 	BOOL isServer = FALSE;
+    BOOL isHost = FALSE;
+    BOOL isGuest = FALSE;
+
 	WSADATA wsaData;
 	WSAStartup(MAKEWORD(2, 2), &wsaData);
 
-	while ((c = getopt(argc, argv, _T("csn:k:a:p:t:"))) != -1)
+	while ((c = getopt(argc, argv, _T("hgsn:k:a:p:"))) != -1)
     {
         switch (c)
         {
-            case _T('c'):
-                printf("I am Client\n");
-				isServer = FALSE;
+            case _T('h'):
+                printf("I am Host Client\n");
+				isHost = TRUE;
+                isGuest = FALSE;
+                isServer = FALSE;
                 break;
+
+            case _T('g'):
+                printf("I am Guest Client\n");
+				isHost = FALSE;
+                isGuest = TRUE;
+                isServer = FALSE;
+                break;
+
             case _T('s'):
                 printf("I am Server\n");
-				isServer = TRUE;
+				isHost = FALSE;
+                isGuest = FALSE;
+                isServer = TRUE;
                 break;
+
             case _T('n'):
 				if (!isServer)
 				{
@@ -38,7 +54,6 @@ int main(int argc,char * argv[])
 				printf("port: %d\n", atoi(optarg));
 				port = atoi(optarg);
                 break;
-
 
             case _T('a'):
 				if (!isServer)
@@ -56,14 +71,6 @@ int main(int argc,char * argv[])
 				}
                 break;
 
-			case _T('t'):
-				if (!isServer)
-				{
-					printf("addr: %s\n", optarg);
-					type = atoi(optarg);
-				}
-                break;
-
             default:
                 printf("WARNING: no handler for option %c\n", c);
                 return -1;
@@ -71,7 +78,20 @@ int main(int argc,char * argv[])
         }
     }
 	
-	
+    if (isServer)
+    {
+        CP2PServer* server = new CP2PServer((WORD)port);
+        server->Init();
+    }
+    else if (isHost)
+    {
+        CP2PHost* host = new CP2PHost(name, keyword, addr, (WORD)port);
+        host->Run();
+    }
+    else if (isGuest)
+    {
+
+    }
 
 	getchar();
 }

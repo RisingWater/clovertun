@@ -1,7 +1,7 @@
 #pragma once
 
-#ifndef __UDP_CLIENT_H__
-#define __UDP_CLIENT_H__
+#ifndef __P2P_CLIENT_H__
+#define __P2P_CLIENT_H__
 
 #ifdef WIN32
 #include <WinSock2.h>
@@ -14,33 +14,40 @@
 #include <arpa/inet.h>
 #endif
 
-#include <list>
 #include "UDPBase.h"
+#include "TCPClient.h"
 
-
-typedef enum {
-    CRT_SERVER = 0,
-    CRT_CLIENT,
-} ClientRoleType;
-
-class CUDPClient : public CUDPBase
+class CP2PClient : public CBaseObject
 {
 public:
-	CUDPClient(CHAR* ClientName, CHAR* Keyword, CHAR* ServerIP, WORD ServerPort, ClientRoleType Type);
-	~CUDPClient();
+	CP2PClient(CHAR* ClientName, CHAR* Keyword, CHAR* ServerIP, WORD ServerTCPPort);
+	~CP2PClient();
 
-    VOID Connect();
-    virtual VOID RecvPacketProcess(UDP_PACKET Packet);
+protected:
+    BOOL Init();
+    VOID Done();
 
-private:
+    VOID SendUDPToServer(BOOL IsHost);
+    VOID SendUDPToPeer(DWORD Type);
+
 	CHAR m_szName[32];
     CHAR m_szKeyword[32];
     CHAR m_szServerIP[32];
-    WORD m_dwServerPort;
-    WORD m_dwLocalPort;
-    ClientRoleType m_eRole;
-    HANDLE m_hConnectServerEvent;
+    WORD m_dwServerTCPPort;
+    WORD m_dwServerUDPPort;
+    WORD m_dwUDPPort;
+
+    DWORD m_dwTCPid;
+    DWORD m_dwPeerid;
     CLIENT_INFO m_stRemoteClientInfo;
+
+    CUDPBase* m_pUDP;
+    CTCPClient* m_pTCP;
+
+    DWORD m_dwErrorCode;
+
+    P2P_STATUS m_eStatus;
 };
+
 
 #endif

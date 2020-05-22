@@ -50,6 +50,8 @@ BOOL CP2PServer::Init()
 
     m_pTCPService->RegisterSocketAcceptProcess(CP2PServer::AcceptTCPSocketProcessDelegate, this);
     m_pTCPService->Init();
+
+    return TRUE;
 }
 
 BOOL CP2PServer::AcceptTCPSocketProcessDelegate(SOCKET s, CBaseObject* Param)
@@ -67,6 +69,8 @@ BOOL CP2PServer::AcceptTCPSocketProcessDelegate(SOCKET s, CBaseObject* Param)
 
 BOOL CP2PServer::RecvUDPPacketProcessDelegate(UDP_PACKET* Packet, CUDPBase* udp, CBaseObject* Param)
 {
+    UNREFERENCED_PARAMETER(udp);
+
     BOOL Ret = FALSE;
     CP2PServer* Server = dynamic_cast<CP2PServer*>(Param);
 
@@ -80,6 +84,8 @@ BOOL CP2PServer::RecvUDPPacketProcessDelegate(UDP_PACKET* Packet, CUDPBase* udp,
 
 BOOL CP2PServer::RecvTCPPacketProcessDelegate(BASE_PACKET_T* Packet, CTCPBase* tcp, CBaseObject* Param)
 {
+    UNREFERENCED_PARAMETER(tcp);
+
     BOOL Ret = FALSE;
     CP2PServer* Server = dynamic_cast<CP2PServer*>(Param);
 
@@ -91,21 +97,68 @@ BOOL CP2PServer::RecvTCPPacketProcessDelegate(BASE_PACKET_T* Packet, CTCPBase* t
     return Ret;
 }
 
+VOID CP2PServer::TCPEndProcessDelegate(CTCPBase* tcp, CBaseObject* Param)
+{
+    CP2PServer* Server = dynamic_cast<CP2PServer*>(Param);
+
+    if (Server)
+    {
+        Server->AddRef();
+        Server->TCPEndProcess(tcp);
+        Server->Release();
+    }
+
+    return;
+}
+
 BOOL CP2PServer::AcceptTCPSocketProcess(SOCKET s)
 {
     CTCPServer* tcp = new CTCPServer(s, m_dwTCPPort);
     if (tcp)
     {
         tcp->RegisterRecvProcess(CP2PServer::RecvTCPPacketProcessDelegate, this);
+        tcp->RegisterEndProcess(CP2PServer::TCPEndProcessDelegate, this);
         if (tcp->Init())
         {
             DWORD tcpid = CreateTCPID(tcp);
-            BASE_PACKET_T* Packet = CreateTCPInit(tcpid);
+            BASE_PACKET_T* Packet = CreateTCPInitPkt(tcpid, m_dwUDPPort);
             tcp->SendPacket(Packet);
         }
 
         tcp->Release();
     }
+
+    return TRUE;
+}
+
+VOID CP2PServer::TCPEndProcess(CTCPBase* tcp)
+{
+    CTCPServer* server = dynamic_cast<CTCPServer*>(tcp);
+    std::map<DWORD, CP2PConnection*>::iterator Itor;
+
+    EnterCriticalSection(&m_csP2PConnection);
+
+    for (Itor = m_P2PConnectList.begin(); Itor != m_P2PConnectList.end(); Itor++)
+    {
+        CP2PConnection* Conn = Itor->second;
+        if (Conn->IsConnTCPServer(server))
+        {
+            Conn->ConnTCPDisconnect();
+            break;
+        }
+
+        if (Conn->IsMainTCPServer(server))
+        {
+            Conn->MainTCPDisconnect();
+            m_P2PConnectList.erase(Itor);
+            Conn->Release();
+            break;
+        }
+    }
+
+    LeaveCriticalSection(&m_csP2PConnection);
+
+    RemoveTCPID(server);
 }
 
 CTCPServer* CP2PServer::GetTCPServer(DWORD tcpip)
@@ -150,6 +203,71 @@ DWORD CP2PServer::CreateTCPID(CTCPServer* tcp)
     return tcpid;
 }
 
+VOID CP2PServer::RemoveTCPID(CTCPServer* server)
+{
+    EnterCriticalSection(&m_csTCPList);
+
+    std::map<DWORD, CTCPServer*>::iterator TcpItor;
+    for (TcpItor = m_TCPList.begin(); TcpItor != m_TCPList.end(); TcpItor++)
+    {
+        if (TcpItor->second == server)
+        {
+            m_TCPList.erase(TcpItor);
+            server->Release();
+            break;
+        }
+    }
+
+    LeaveCriticalSection(&m_csTCPList);
+}
+
+CP2PConnection* CP2PServer::FindP2PConnection(CHAR* Keyword)
+{
+    CP2PConnection* Ret = NULL;
+    std::map<DWORD, CP2PConnection*>::iterator Itor;
+    EnterCriticalSection(&m_csP2PConnection);
+
+    for (Itor = m_P2PConnectList.begin(); Itor != m_P2PConnectList.end(); Itor++)
+    {
+        CP2PConnection* Conn = Itor->second;
+        if (strcmp(Conn->GetKeyword(), Keyword) == 0)
+        {
+            Ret = Conn;
+            Ret->AddRef();
+        }
+    }
+
+    LeaveCriticalSection(&m_csP2PConnection);
+
+    return Ret;
+}
+
+CP2PConnection* CP2PServer::FindP2PConnection(DWORD Peerid)
+{
+    CP2PConnection* Ret = NULL;
+    std::map<DWORD, CP2PConnection*>::iterator Itor;
+    EnterCriticalSection(&m_csP2PConnection);
+
+    Itor = m_P2PConnectList.find(Peerid);
+    if (Itor != m_P2PConnectList.end())
+    {
+        Ret = Itor->second;
+        Ret->AddRef();
+    }
+
+    LeaveCriticalSection(&m_csP2PConnection);
+
+    return Ret;
+}
+
+VOID CP2PServer::CreateP2PConnection(TCP_WAIT_PACKET* Packet, CTCPServer* Server)
+{
+    CP2PConnection* Conn = new CP2PConnection(Packet, Server);
+    EnterCriticalSection(&m_csP2PConnection);
+    m_P2PConnectList[Packet->tcpid] = Conn;
+    LeaveCriticalSection(&m_csP2PConnection);
+}
+
 BOOL CP2PServer::RecvTCPPacketProcess(BASE_PACKET_T* Packet)
 {
     BOOL Ret = TRUE;
@@ -160,21 +278,24 @@ BOOL CP2PServer::RecvTCPPacketProcess(BASE_PACKET_T* Packet)
             TCP_WAIT_PACKET* Data = (TCP_WAIT_PACKET*)Packet->Data;
             CTCPServer* Server = GetTCPServer(Data->tcpid);
 
-            DWORD Result = -1;
+            DWORD Result = P2P_ERROR_UNKNOW;
             if (Server)
             {
+                EnterCriticalSection(&m_csP2PConnection);
                 CP2PConnection* p2p = FindP2PConnection((CHAR*)Data->keyword);
                 if (p2p == NULL)
                 {
                     CreateP2PConnection(Data, Server);
-                    Result = 0;
+                    Result = P2P_ERROR_NONE;
                 }
                 else
                 {
+                    Result = P2P_KEYWORD_DUPLICATE;
                     p2p->Release();
                 }
+                LeaveCriticalSection(&m_csP2PConnection);
 
-                BASE_PACKET_T* Reply = CreateTCPResult(TPT_WAIT_RESULT, Data->tcpid, Result);
+                BASE_PACKET_T* Reply = CreateTCPResultPkt(TPT_WAIT_RESULT, Data->tcpid, Result);
                 Server->SendPacket(Reply);
                 Server->Release();
             }
@@ -186,22 +307,23 @@ BOOL CP2PServer::RecvTCPPacketProcess(BASE_PACKET_T* Packet)
             TCP_CONN_PACKET* Data = (TCP_CONN_PACKET*)Packet->Data;
             CTCPServer* Server = GetTCPServer(Data->tcpid);
 
-            DWORD Result = -1;
+            DWORD Result = P2P_ERROR_UNKNOW;
             if (Server)
             {
                 CP2PConnection* p2p = FindP2PConnection((CHAR*)Data->keyword);
                 if (p2p != NULL)
                 {
-                    if (p2p->TCPConnected(Data, Server))
-                    {
-                        Result = 0;
-                    }
+                    Result = p2p->TCPConnected(Data, Server);
                     p2p->Release();
                 }
-
-                if (Result != 0)
+                else
                 {
-                    Packet = CreateTCPResult(TPT_CONNECT_RESULT, Data->tcpid, Result);
+                    Result = P2P_KEYWORD_NOT_FOUND;
+                }
+
+                if (Result != P2P_ERROR_NONE)
+                {
+                    Packet = CreateTCPResultPkt(TPT_CONNECT_RESULT, Data->tcpid, Result);
                     Server->SendPacket(Packet);
                 }
 
@@ -210,6 +332,51 @@ BOOL CP2PServer::RecvTCPPacketProcess(BASE_PACKET_T* Packet)
 
             break;
         }
+
+        case TPT_PROXY_REQUEST:
+        {
+            TCP_PROXY_REQUEST_PACKET* Data = (TCP_PROXY_REQUEST_PACKET*)Packet->Data;
+            CTCPServer* Server = GetTCPServer(Data->tcpid);
+
+            DWORD Result = P2P_ERROR_UNKNOW;
+            if (Server)
+            {
+                CP2PConnection* p2p = FindP2PConnection((CHAR*)Data->keyword);
+                if (p2p != NULL)
+                {
+                    Result = p2p->TCPProxyRequest();
+                    p2p->Release();
+                }
+                else
+                {
+                    Result = P2P_KEYWORD_NOT_FOUND;
+                }
+             
+                if (Result != P2P_ERROR_NONE)
+                {
+                    BASE_PACKET_T* Reply = CreateTCPProxyResultPkt(Data->tcpid, 0, Result);
+                    Server->SendPacket(Reply);
+                }
+
+                Server->Release();
+            }
+
+            break;
+        }
+
+        case TPT_DATA_PROXY:
+        {
+            TCP_PROXY_DATA* Data = (TCP_PROXY_DATA*)Packet->Data;
+            CP2PConnection* p2p = FindP2PConnection((CHAR*)Data->Peerid);
+            if (p2p != NULL)
+            {
+                p2p->TCPDataProxy(Data, Packet->Length - BASE_PACKET_HEADER_LEN);
+                p2p->Release();
+            }
+            
+            break;
+        }
+
         default:
         {
             break;
@@ -254,5 +421,7 @@ BOOL CP2PServer::RecvUDPPacketProcess(UDP_PACKET* Packet)
             break;
         }
 	}
+
+    return TRUE;
 }
 

@@ -1,118 +1,106 @@
 #include "stdafx.h"
-#include "UDPClient.h"
+#include "P2PClient.h"
 
-CUDPClient::CUDPClient(CHAR* ClientName, CHAR* Keyword, CHAR* ServerIP, WORD ServerPort, ClientRoleType Type) : CUDPBase()
+CP2PClient::CP2PClient(CHAR* ClientName, CHAR* Keyword, CHAR* ServerIP, WORD ServerTCPPort)
 {
     strcpy(m_szName, ClientName);
     strcpy(m_szKeyword, Keyword);
     strcpy(m_szServerIP, ServerIP);
-    m_dwServerPort = ServerPort;
-    m_eRole = Type;
+    m_dwServerTCPPort = ServerTCPPort;
+    m_dwServerUDPPort = 0;
+    m_dwUDPPort = 0;
+    m_dwTCPid = 0;
+    m_dwPeerid = 0;
 
-    m_hConnectServerEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
+    m_dwErrorCode = P2P_ERROR_NONE;
+    m_eStatus = P2P_STATUS_NONE;
+
+    m_pUDP = new CUDPBase();
+    m_pTCP = new CTCPClient(m_szServerIP, m_dwServerTCPPort);
 
     memset(&m_stRemoteClientInfo, 0, sizeof(CLIENT_INFO));
+}
 
+CP2PClient::~CP2PClient()
+{
 
+}
 
-    //int reuseaddr = 1;
-    //setsockopt(m_hSock, SOL_SOCKET, SO_REUSEADDR, (char*)&reuseaddr, sizeof(int));
+BOOL CP2PClient::Init()
+{
+    if (!m_pTCP->Init())
+    {
+        DBG("TCP connect failed\n");
+        return FALSE;
+    }
 
-    m_dwLocalPort = UDP_PORT_BASE;
+    DBG("TCP connect ok\n");
+
+    m_dwUDPPort = UDP_PORT_SERVER_BASE;
+
     while (TRUE)
     {
-        struct sockaddr_in bindAddr;
-        memset(&bindAddr, 0, sizeof(bindAddr));
-        bindAddr.sin_addr.S_un.S_addr = INADDR_ANY;
-        bindAddr.sin_family = AF_INET;
-        bindAddr.sin_port = htons(m_dwLocalPort);
-
-        int res = bind(m_hSock, (sockaddr*)&bindAddr, sizeof(bindAddr));
-
-        if (res < 0)
+        if (!m_pUDP->Init(m_dwUDPPort))
         {
-            m_dwLocalPort++;
+            m_dwUDPPort++;
         }
         else
         {
-            DBG("客户端启动成功，本地端口：%d\n", m_dwLocalPort);
+            DBG("UDP Start at Port %d\n", m_dwUDPPort);
             break;
         }
     }
+
+    return TRUE;
 }
 
-CUDPClient::~CUDPClient()
+VOID CP2PClient::Done()
 {
-    if (m_hConnectServerEvent)
-    {
-        CloseHandle(m_hConnectServerEvent);
-    }
+    m_pTCP->RegisterRecvProcess(NULL, NULL);
+    m_pTCP->RegisterEndProcess(NULL, NULL);
+    m_pUDP->RegisterRecvProcess(NULL, NULL);
+
+    m_pTCP->Done();
+    m_pUDP->Done();
 }
 
-VOID CUDPClient::Connect()
+VOID CP2PClient::SendUDPToServer(BOOL IsHost)
 {
-    UDP_PACKET Packet;
-
-    memset(&Packet, 0, sizeof(UDP_PACKET));
-    InetPton(AF_INET, m_szServerIP, &Packet.PacketInfo.ipaddr);
-    Packet.PacketInfo.port = htons(m_dwServerPort);
-
-    if (m_eRole == CRT_SERVER)
+    UDP_PACKET* Packet = (UDP_PACKET*)malloc(sizeof(UDP_PACKET));
+    memset(Packet, 0, sizeof(UDP_PACKET));
+    InetPton(AF_INET, m_szServerIP, &Packet->PacketInfo.ipaddr);
+    Packet->PacketInfo.port = htons(m_dwServerUDPPort);
+    
+    if (IsHost)
     {
-        Packet.BasePacket.type = UPT_WAITING;
+        Packet->BasePacket.type = UPT_WAITING;
+        Packet->BasePacket.length = sizeof(UDP_WAIT_PACKET);
     }
-    else if (m_eRole == CRT_CLIENT)
+    else
     {
-        Packet.BasePacket.type = UPT_CONNECT;
+        Packet->BasePacket.type = UPT_CONNECT;
+        Packet->BasePacket.length = sizeof(UDP_CONN_PACKET);
     }
-
-    Packet.BasePacket.length = sizeof(CONNECT_PACKET_DATA);
-
-    CONNECT_PACKET_DATA* ConnectData = (CONNECT_PACKET_DATA*)Packet.BasePacket.data;
-
+    
+    UDP_WAIT_PACKET* ConnectData = (UDP_WAIT_PACKET*)Packet->BasePacket.data;
+    
     strncpy((char*)ConnectData->keyword, m_szKeyword, 32);
     strncpy((char*)ConnectData->clientName, m_szName, 32);
-
-    SendPacket(Packet);
+    
+    m_pUDP->SendPacket(Packet);
 }
 
-VOID CUDPClient::RecvPacketProcess(UDP_PACKET Packet)
+VOID CP2PClient::SendUDPToPeer(DWORD Type)
 {
-    switch (Packet.BasePacket.type)
-    {
-        case UPT_SERVER_RESPONSE:
-        {
-			UDP_PACKET data;
-			const char* handshakeText = "hello\n";
+    UDP_PACKET* Packet = (UDP_PACKET*)malloc(sizeof(UDP_PACKET));
+    memset(Packet, 0, sizeof(UDP_PACKET));
+    InetPton(AF_INET, m_szServerIP, &Packet->PacketInfo.ipaddr);
+    Packet->PacketInfo.port = htons(m_dwServerUDPPort);
+   
+    Packet->BasePacket.type = Type;
+    Packet->BasePacket.length = sizeof(DWORD);
 
-            DBG("recv server response pkt\n");
-            SetEvent(m_hConnectServerEvent);
-			memcpy(&data.BasePacket.data, handshakeText, sizeof(*handshakeText));
-			data.BasePacket.length = sizeof(*handshakeText);
-			data.BasePacket.type = UPT_HANDSHAKE;
-            CLIENT_INFO* Info = (CLIENT_INFO*)Packet.BasePacket.data;
-			memcpy(&data.PacketInfo, Info, sizeof(CLIENT_INFO));
-
-			SendPacket(data);
-            break;
-        }
-		case UPT_HANDSHAKE:
-		case UPT_KEEPALIVE:
-		{
-			UDP_PACKET data;
-
-            DBG("recv keepalive pkt\n");
-			const char* handshakeText = "hello\n";
-			memcpy(&data.BasePacket.data, handshakeText, sizeof(*handshakeText));
-			data.BasePacket.length = sizeof(*handshakeText);
-			data.BasePacket.type = UPT_KEEPALIVE;
-			memcpy(&data.PacketInfo, &Packet.PacketInfo, sizeof(CLIENT_INFO));
-
-			SendPacket(data);
-            Sleep(1000);
-			break;
-		}
-    }
+    memcpy(&Packet->BasePacket.data, &m_dwPeerid ,sizeof(DWORD));
+    
+    m_pUDP->SendPacket(Packet);
 }
-
-

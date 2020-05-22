@@ -12,26 +12,28 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="P2PClient.cpp" />
     <ClCompile Include="P2PConnection.cpp" />
+    <ClCompile Include="P2PHost.cpp" />
     <ClCompile Include="P2PPacket.cpp" />
     <ClCompile Include="P2PServer.cpp" />
     <ClCompile Include="TCPBase.cpp" />
     <ClCompile Include="TCPClient.cpp" />
     <ClCompile Include="TCPCommon.cpp" />
     <ClCompile Include="TCPServer.cpp" />
-    <ClCompile Include="UDPClient.cpp" />
     <ClCompile Include="UDPBase.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\include\clovertun\P2PProtocol.h" />
+    <ClInclude Include="P2PClient.h" />
     <ClInclude Include="P2PConnection.h" />
+    <ClInclude Include="P2PHost.h" />
     <ClInclude Include="P2PPacket.h" />
     <ClInclude Include="P2PServer.h" />
     <ClInclude Include="TCPBase.h" />
     <ClInclude Include="TCPClient.h" />
     <ClInclude Include="TCPCommon.h" />
     <ClInclude Include="TCPServer.h" />
-    <ClInclude Include="UDPClient.h" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="UDPBase.h" />
   </ItemGroup>
@@ -83,7 +85,7 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
-      <WarningLevel>Level3</WarningLevel>
+      <WarningLevel>Level4</WarningLevel>
       <Optimization>Disabled</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
@@ -91,6 +93,7 @@
       <PreprocessorDefinitions>WIN32;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <DisableSpecificWarnings>4996</DisableSpecificWarnings>
       <AdditionalIncludeDirectories>$(SolutionDir)include/BaseObject;$(SolutionDir)include/clovertun;$(SolutionDir)include/corelib</AdditionalIncludeDirectories>
+      <TreatWarningAsError>false</TreatWarningAsError>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
