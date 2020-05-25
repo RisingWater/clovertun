@@ -1,7 +1,7 @@
 #pragma once
 
-#ifndef __P2P_HOST_H__
-#define __P2P_HOST_H__
+#ifndef __P2P_GUEST_H__
+#define __P2P_GUEST_H__
 
 #ifdef WIN32
 #include <WinSock2.h>
@@ -16,16 +16,16 @@
 
 #include "P2PClient.h"
 
-class CP2PHost : public CP2PClient
+class CP2PGuest : public CP2PClient
 {
 public:
-	CP2PHost(CHAR* ClientName, CHAR* Keyword, CHAR* ServerIP, WORD ServerTCPPort);
-	virtual ~CP2PHost();
+    CP2PGuest(CHAR* ClientName, CHAR* Keyword, CHAR* ServerIP, WORD ServerTCPPort);
+    virtual ~CP2PGuest();
 
     DWORD Run();
 
 private:
-    BOOL StartListening();
+    BOOL Connect();
     VOID Clearup();
     
     static BOOL RecvUDPPacketProcessDelegate(UDP_PACKET* Packet, CUDPBase* udp, CBaseObject* Param);
@@ -36,8 +36,8 @@ private:
     BOOL RecvTCPPacketProcess(BASE_PACKET_T* Packet);
     VOID TCPEndProcess();
 
-    VOID TCPListeningEventProcess();
-    VOID UDPListeningEventProccess();
+    VOID TCPConnectEventProcess();
+    VOID UDPConnectEventProccess();
     VOID UDPPunchEventProcess();
     VOID UDPConnectEventProcess();
 };

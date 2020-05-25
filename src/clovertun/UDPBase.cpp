@@ -196,13 +196,13 @@ BOOL CUDPBase::RecvProcess(HANDLE StopEvent)
 
     if (length < 0)
     {
-        DBG("recv failed last error %d\n", GetLastError());
+        DBG_ERROR("recv failed last error %d\r\n", GetLastError());
         return FALSE;
     }
 
     if (!IsCheckSumVaild(Packet.BasePacket))
     {
-        DBG("check sum error\n");
+        DBG_ERROR("check sum error\r\n");
         return TRUE;
     }
 
@@ -220,7 +220,7 @@ BOOL CUDPBase::RecvProcess(HANDLE StopEvent)
 
     if (!Ret)
     {
-        DBG("Process Packet failed, stop recv thread\n");
+        DBG_ERROR("Process Packet failed, stop recv thread\r\n");
     }
 
     return Ret;

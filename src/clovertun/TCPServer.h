@@ -16,7 +16,7 @@ class CTCPServer : public CTCPBase
 {
 public :
 	CTCPServer(SOCKET socket, WORD ListenPort);
-	~CTCPServer();
+	virtual ~CTCPServer();
 
     BOOL Init();
     VOID Done();

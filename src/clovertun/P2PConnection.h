@@ -19,7 +19,7 @@ class CP2PConnection : public CBaseObject
 {
 public:
     CP2PConnection(TCP_WAIT_PACKET* PacketData, CTCPServer* Server);
-    ~CP2PConnection();
+    virtual ~CP2PConnection();
 
     P2P_STATUS GetStatus();
 
@@ -35,6 +35,8 @@ public:
     DWORD UDPListening(CLIENT_INFO* ClientInfo);
     DWORD UDPConnected(CLIENT_INFO* ClientInfo);
 
+    DWORD SetP2POK(CTCPServer* Server);
+
     DWORD TCPProxyRequest();
     DWORD TCPDataProxy(TCP_PROXY_DATA* Data, DWORD Length);
 
@@ -44,16 +46,20 @@ private:
     CTCPServer*          m_pMainTCPServer;
     DWORD                m_dwMainTCPID;
     CHAR                 m_szMainTCPName[NAME_SIZE];
+    BOOL                 m_bMainUDPOK;
 
     CTCPServer*          m_pConnTCPServer;
     DWORD                m_dwConnTCPID;
     CHAR                 m_szConnTCPName[NAME_SIZE];
+    BOOL                 m_bConnUDPOK;
 
     CLIENT_INFO          m_stMainUDPServer;
     CLIENT_INFO          m_stConnUDPServer;
     P2P_STATUS           m_eStatus;
 
     CRITICAL_SECTION     m_csLock;
+
+    void DumpP2PConnection(char* message);
 };
 
 #endif

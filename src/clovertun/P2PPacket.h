@@ -20,9 +20,15 @@ BASE_PACKET_T* CreateTCPStartPunchingPkt(DWORD tcpid, DWORD PeerId, CLIENT_INFO*
 BASE_PACKET_T* CreateTCPWaitPkt(DWORD tcpid, CHAR* Keyword, CHAR* name);
 BASE_PACKET_T* CreateTCPConnPkt(DWORD tcpid, CHAR* Keyword, CHAR* name);
 BASE_PACKET_T* CreateTCPProxyRequest(DWORD tcpid, CHAR* Keyword, CHAR* name);
+BASE_PACKET_T* CreateP2PSuccessPkt(DWORD tcpid, CHAR* Keyword);
 
 BASE_PACKET_T* CreateTCPProxyResultPkt(DWORD tcpid, DWORD peerid, DWORD result);
 BASE_PACKET_T* CreateTCPProxyData(TCP_PROXY_DATA* Data, DWORD Length);
+
+char* TCPTypeToString(DWORD Type);
+char* UDPTypeToString(DWORD Type);
+char* P2PStatusToString(DWORD Type);
+char* P2PErrorToString(DWORD Type);
 
 
 #endif

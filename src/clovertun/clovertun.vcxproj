@@ -14,6 +14,7 @@
     <ClCompile Include="main.cpp" />
     <ClCompile Include="P2PClient.cpp" />
     <ClCompile Include="P2PConnection.cpp" />
+    <ClCompile Include="P2PGuest.cpp" />
     <ClCompile Include="P2PHost.cpp" />
     <ClCompile Include="P2PPacket.cpp" />
     <ClCompile Include="P2PServer.cpp" />
@@ -27,6 +28,7 @@
     <ClInclude Include="..\..\include\clovertun\P2PProtocol.h" />
     <ClInclude Include="P2PClient.h" />
     <ClInclude Include="P2PConnection.h" />
+    <ClInclude Include="P2PGuest.h" />
     <ClInclude Include="P2PHost.h" />
     <ClInclude Include="P2PPacket.h" />
     <ClInclude Include="P2PServer.h" />

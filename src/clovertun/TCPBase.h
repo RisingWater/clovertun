@@ -24,7 +24,7 @@ class CTCPBase : public CBaseObject
 {
 public :
 	CTCPBase();
-	~CTCPBase();
+	virtual ~CTCPBase();
 
     VOID SendPacket(BASE_PACKET_T* Packet);
     VOID RegisterRecvProcess(_TCPRecvPacketProcess Process, CBaseObject* Param);

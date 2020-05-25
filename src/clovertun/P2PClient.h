@@ -21,7 +21,7 @@ class CP2PClient : public CBaseObject
 {
 public:
 	CP2PClient(CHAR* ClientName, CHAR* Keyword, CHAR* ServerIP, WORD ServerTCPPort);
-	~CP2PClient();
+	virtual ~CP2PClient();
 
 protected:
     BOOL Init();
@@ -46,8 +46,21 @@ protected:
 
     DWORD m_dwErrorCode;
 
+    HANDLE m_hStopEvent;
+    HANDLE m_hStatusChange;
+
     P2P_STATUS m_eStatus;
 };
+
+#define SetState(Status) \
+    do {                                               \
+        P2P_STATUS old = m_eStatus;                    \
+        m_eStatus = Status;                            \
+        DBG_TRACE("Status Change %s ==> %s\r\n",       \
+            P2PStatusToString(old),                    \
+            P2PStatusToString(m_eStatus));             \
+    } while (FALSE);
+    
 
 
 #endif

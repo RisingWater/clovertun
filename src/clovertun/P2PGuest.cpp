@@ -1,28 +1,28 @@
 #include "stdafx.h"
-#include "P2PHost.h"
+#include "P2PGuest.h"
 #include "P2PPacket.h"
 
-CP2PHost::CP2PHost(CHAR* ClientName, CHAR* Keyword, CHAR* ServerIP, WORD ServerTCPPort)
+CP2PGuest::CP2PGuest(CHAR* ClientName, CHAR* Keyword, CHAR* ServerIP, WORD ServerTCPPort)
     : CP2PClient(ClientName, Keyword, ServerIP, ServerTCPPort)
 {
 
 }
 
-CP2PHost::~CP2PHost()
+CP2PGuest::~CP2PGuest()
 {
 
 }
 
-DWORD CP2PHost::Run()
+DWORD CP2PGuest::Run()
 {
     HANDLE h[2] = {
         m_hStatusChange,
         m_hStopEvent,
     };
 
-    if (!StartListening())
+    if (!Connect())
     {
-        DBG_ERROR("Start Listening Failed\r\n");
+        DBG_ERROR("Connect Failed\r\n");
         m_dwErrorCode = P2P_TCP_CONNECT_ERROR;
         return m_dwErrorCode;
     }
@@ -37,21 +37,16 @@ DWORD CP2PHost::Run()
 
         switch (m_eStatus)
         {
-            case P2P_TCP_LISTENING:
-            {
-                ResetEvent(m_hStatusChange);
-                TCPListeningEventProcess();
-                break;
-            }
             case P2P_TCP_CONNECTED:
             {
                 ResetEvent(m_hStatusChange);
+                TCPConnectEventProcess();
                 break;
             }
-            case P2P_UDP_LISTENING:
+            case P2P_UDP_CONNECTED:
             {
                 ResetEvent(m_hStatusChange);
-                UDPListeningEventProccess();
+                UDPConnectEventProccess();
                 break;
             }
             case P2P_PUNCHING:
@@ -84,28 +79,28 @@ DWORD CP2PHost::Run()
     return m_dwErrorCode;
 }
 
-BOOL CP2PHost::StartListening()
+BOOL CP2PGuest::Connect()
 {
-    m_pTCP->RegisterRecvProcess(CP2PHost::RecvTCPPacketProcessDelegate, this);
-    m_pTCP->RegisterEndProcess(CP2PHost::TCPEndProcessDelegate, this);
-    m_pUDP->RegisterRecvProcess(CP2PHost::RecvUDPPacketProcessDelegate, this);
+    m_pTCP->RegisterRecvProcess(CP2PGuest::RecvTCPPacketProcessDelegate, this);
+    m_pTCP->RegisterEndProcess(CP2PGuest::TCPEndProcessDelegate, this);
+    m_pUDP->RegisterRecvProcess(CP2PGuest::RecvUDPPacketProcessDelegate, this);
 
     return Init();
 }
 
-VOID CP2PHost::Clearup()
+VOID CP2PGuest::Clearup()
 {
     Done();
 }
 
-VOID CP2PHost::TCPListeningEventProcess()
+VOID CP2PGuest::TCPConnectEventProcess()
 {
-    DBG_TRACE("Send %s Packet to Server\r\n", TCPTypeToString(TPT_WAITING));
-    BASE_PACKET_T* Packet = CreateTCPWaitPkt(m_dwTCPid, m_szKeyword, m_szName);
+    DBG_TRACE("Send %s Packet to Server\r\n", TCPTypeToString(TPT_CONNECT));
+    BASE_PACKET_T* Packet = CreateTCPConnPkt(m_dwTCPid, m_szKeyword, m_szName);
     m_pTCP->SendPacket(Packet);
 }
 
-VOID CP2PHost::UDPListeningEventProccess()
+VOID CP2PGuest::UDPConnectEventProccess()
 {
     DWORD Ret = 0;
     DWORD Retry = 0;
@@ -119,8 +114,8 @@ VOID CP2PHost::UDPListeningEventProccess()
     while (TRUE)
     {
         //send udp to server
-        DBG_TRACE("Send %s Packet to Server\r\n", UDPTypeToString(UPT_WAITING));
-        SendUDPToServer(TRUE);
+        DBG_TRACE("Send %s Packet to Server\r\n", UDPTypeToString(UPT_CONNECT));
+        SendUDPToServer(FALSE);
 
         //wait 500ms to retry
         Ret = WaitForMultipleObjects(2, h, FALSE, 200);
@@ -157,7 +152,7 @@ VOID CP2PHost::UDPListeningEventProccess()
     }
 }
 
-VOID CP2PHost::UDPPunchEventProcess()
+VOID CP2PGuest::UDPPunchEventProcess()
 {
     DWORD Ret = 0;
     DWORD Retry = 0;
@@ -171,7 +166,7 @@ VOID CP2PHost::UDPPunchEventProcess()
     while (TRUE)
     {
         //send udp to peer
-        DBG_TRACE("Send %s Packet to guest\r\n", UDPTypeToString(UPT_HANDSHAKE));
+        DBG_TRACE("Send %s Packet to host\r\n", UDPTypeToString(UPT_HANDSHAKE));
         SendUDPToPeer(UPT_HANDSHAKE);
 
         //wait 500ms to retry
@@ -209,17 +204,17 @@ VOID CP2PHost::UDPPunchEventProcess()
     }
 }
 
-VOID CP2PHost::UDPConnectEventProcess()
+VOID CP2PGuest::UDPConnectEventProcess()
 {
     DBG_TRACE("UDP Connect ok, start kcp ...\r\n");
 }
 
-BOOL CP2PHost::RecvUDPPacketProcessDelegate(UDP_PACKET* Packet, CUDPBase* udp, CBaseObject* Param)
+BOOL CP2PGuest::RecvUDPPacketProcessDelegate(UDP_PACKET* Packet, CUDPBase* udp, CBaseObject* Param)
 {
     UNREFERENCED_PARAMETER(udp);
 
     BOOL Ret = FALSE;
-    CP2PHost* Host = dynamic_cast<CP2PHost*>(Param);
+    CP2PGuest* Host = dynamic_cast<CP2PGuest*>(Param);
 
     if (Host)
     {
@@ -229,12 +224,12 @@ BOOL CP2PHost::RecvUDPPacketProcessDelegate(UDP_PACKET* Packet, CUDPBase* udp, C
     return Ret;
 }
 
-BOOL CP2PHost::RecvTCPPacketProcessDelegate(BASE_PACKET_T* Packet, CTCPBase* tcp, CBaseObject* Param)
+BOOL CP2PGuest::RecvTCPPacketProcessDelegate(BASE_PACKET_T* Packet, CTCPBase* tcp, CBaseObject* Param)
 {
     UNREFERENCED_PARAMETER(tcp);
 
     BOOL Ret = FALSE;
-    CP2PHost* Host = dynamic_cast<CP2PHost*>(Param);
+    CP2PGuest* Host = dynamic_cast<CP2PGuest*>(Param);
 
     if (Host)
     {
@@ -244,11 +239,11 @@ BOOL CP2PHost::RecvTCPPacketProcessDelegate(BASE_PACKET_T* Packet, CTCPBase* tcp
     return Ret;
 }
 
-VOID CP2PHost::TCPEndProcessDelegate(CTCPBase* tcp, CBaseObject* Param)
+VOID CP2PGuest::TCPEndProcessDelegate(CTCPBase* tcp, CBaseObject* Param)
 {
     UNREFERENCED_PARAMETER(tcp);
 
-    CP2PHost* Host = dynamic_cast<CP2PHost*>(Param);
+    CP2PGuest* Host = dynamic_cast<CP2PGuest*>(Param);
 
     if (Host)
     {
@@ -259,7 +254,7 @@ VOID CP2PHost::TCPEndProcessDelegate(CTCPBase* tcp, CBaseObject* Param)
 }
 
 
-BOOL CP2PHost::RecvUDPPacketProcess(UDP_PACKET* Packet)
+BOOL CP2PGuest::RecvUDPPacketProcess(UDP_PACKET* Packet)
 {
     BOOL Ret = TRUE;
     switch (Packet->BasePacket.type)
@@ -274,7 +269,7 @@ BOOL CP2PHost::RecvUDPPacketProcess(UDP_PACKET* Packet)
             
             if (Peerid == m_dwPeerid)
             {
-                DBG_TRACE("===> Send %s Packet to guest\r\n", UDPTypeToString(UPT_KEEPALIVE));
+                DBG_TRACE("===> Send %s Packet to host\r\n", UDPTypeToString(UPT_KEEPALIVE));
                 SendUDPToPeer(UPT_KEEPALIVE);
             }
             else
@@ -311,7 +306,7 @@ BOOL CP2PHost::RecvUDPPacketProcess(UDP_PACKET* Packet)
     return Ret;
 }
 
-BOOL CP2PHost::RecvTCPPacketProcess(BASE_PACKET_T* Packet)
+BOOL CP2PGuest::RecvTCPPacketProcess(BASE_PACKET_T* Packet)
 {
     BOOL Ret = TRUE;
     switch (Packet->Type)
@@ -325,7 +320,7 @@ BOOL CP2PHost::RecvTCPPacketProcess(BASE_PACKET_T* Packet)
             DBG_TRACE("Recv %s packet from server\r\n", TCPTypeToString(TPT_INIT));
             DBG_TRACE("===> Tcpid %d udpport %d\r\n", m_dwTCPid, m_dwUDPPort);
 
-            SetState(P2P_TCP_LISTENING);
+            SetState(P2P_TCP_CONNECTED);
             SetEvent(m_hStatusChange);
             break;
         }
@@ -340,33 +335,21 @@ BOOL CP2PHost::RecvTCPPacketProcess(BASE_PACKET_T* Packet)
                 m_dwErrorCode = Data->result;
                 SetEvent(m_hStopEvent);
             }
-            else
-            {
-                if (m_eStatus == P2P_TCP_LISTENING)
-                {
-                    SetState(P2P_TCP_CONNECTED);
-                    SetEvent(m_hStatusChange);
-                }
-                else
-                {
-                    DBG_ERROR("===> State is not P2P_TCP_LISTENING, Peer reset\r\n");
-                    m_dwErrorCode = P2P_PEER_RESET;
-                    SetEvent(m_hStopEvent);
-                }
-            }
+
             break;
         }
         case TPT_START_UDP:
         {
             DBG_TRACE("Recv %s packet from server\r\n", TCPTypeToString(TPT_START_UDP));
-            SetState(P2P_UDP_LISTENING);
+            SetState(P2P_UDP_CONNECTED);
             SetEvent(m_hStatusChange);
             break;
         }
         case TPT_CLIENT_INFO:
         {
+            //only set when state is udp listening
             DBG_TRACE("Recv %s packet from server\r\n", TCPTypeToString(TPT_CLIENT_INFO));
-            if (m_eStatus == P2P_UDP_LISTENING)
+            if (m_eStatus == P2P_UDP_CONNECTED)
             {
                 TCP_START_PUNCHING_PACKET* Data = (TCP_START_PUNCHING_PACKET*)Packet->Data;
                 m_dwPeerid = Data->Peerid;
@@ -422,7 +405,7 @@ BOOL CP2PHost::RecvTCPPacketProcess(BASE_PACKET_T* Packet)
     return Ret;
 }
 
-VOID CP2PHost::TCPEndProcess()
+VOID CP2PGuest::TCPEndProcess()
 {
     DBG_INFO("TCP Disconnect\r\n");
     m_dwErrorCode = P2P_TCP_CONNECT_ERROR;

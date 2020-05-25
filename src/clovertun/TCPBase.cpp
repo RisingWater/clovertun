@@ -62,7 +62,10 @@ BOOL CTCPBase::InitBase()
 	ioctl(m_socket, FIONBIO, 0);
 #endif
 
+    AddRef();
 	m_hRecvThread = CreateThread(NULL, 0, CTCPBase::RecvProc, this, 0, NULL);
+
+    AddRef();
 	m_hSendThread = CreateThread(NULL, 0, CTCPBase::SendProc, this, 0, NULL);
 
     return TRUE;

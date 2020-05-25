@@ -15,7 +15,10 @@
 #define closesocket close
 #endif
 
-#define DBG printf
+#define DBG_ERROR printf
+#define DBG_WARN  printf
+#define DBG_INFO  printf
+#define DBG_TRACE printf
 
 #define _WINSOCK_DEPRECATED_NO_WARNINGS
 #define _CRT_SECURE_NO_WARNINGS

@@ -24,7 +24,7 @@ class CUDPBase : public CBaseObject
 {
 public :
 	CUDPBase();
-	~CUDPBase();
+	virtual ~CUDPBase();
 
     BOOL Init(WORD UdpPort);
     VOID Done();

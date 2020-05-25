@@ -19,7 +19,7 @@ class CP2PServer : public CBaseObject
 {
 public:
 	CP2PServer(WORD TCPPort);
-    ~CP2PServer();
+    virtual ~CP2PServer();
 
     BOOL Init();
     VOID Done();

@@ -1,6 +1,97 @@
 #include "stdafx.h"
 #include "P2PPacket.h"
 
+static char* TCPTypeName[] = {
+    "TPT_INIT",
+    "TPT_WAITING",
+    "TPT_WAIT_RESULT",
+    "TPT_CONNECT",
+    "TPT_CONNECT_RESULT",
+    "TPT_START_UDP",
+    "TPT_CLIENT_INFO",
+    "TPT_P2P_RESULT",
+    "TPT_PROXY_REQUEST",
+    "TPT_PROXY_RESULT",
+    "TPT_DATA_PROXY",
+    "TPT_MAX",
+};
+
+char* TCPTypeToString(DWORD Type)
+{
+    if (Type >= TPT_MAX)
+    {
+        return TCPTypeName[TPT_MAX];
+    }
+
+    return TCPTypeName[Type];
+}
+
+static char* UDPTypeName[] = {
+    "UPT_WAITING",
+    "UPT_CONNECT",
+    "UPT_HANDSHAKE",
+    "UPT_KEEPALIVE",
+    "UPT_P2P_SUCCESS",
+    "UPT_KCP",
+    "UPT_MAX",
+};
+
+char* UDPTypeToString(DWORD Type)
+{
+    if (Type >= UPT_MAX)
+    {
+        return UDPTypeName[UPT_MAX];
+    }
+
+    return UDPTypeName[Type];
+}
+
+static char* P2PStatueName[] = {
+    "P2P_STATUS_NONE",
+    "P2P_TCP_LISTENING",
+    "P2P_TCP_CONNECTED",
+    "P2P_UDP_LISTENING",
+    "P2P_UDP_CONNECTED",
+    "P2P_PUNCHING",
+    "P2P_CONNECTED",
+    "P2P_TCP_PROXY_REQUEST",
+    "P2P_TCP_PROXY",
+    "P2P_STATUS_MAX",
+};
+
+char* P2PStatusToString(DWORD Type)
+{
+    if (Type >= P2P_STATUS_MAX)
+    {
+        return P2PStatueName[P2P_STATUS_MAX];
+    }
+
+    return P2PStatueName[Type];
+}
+
+static char* P2PErrorName[] = {
+    "Success, No Error",
+    "Tcpid Error",
+    "Connect to Server Failed",
+    "Keyword Duplicate",
+    "Keyword Not Found",
+    "P2P State Mismatch",
+    "P2P Punching Timeout",
+    "P2P Proxy Failed",
+    "P2P Peer Reset",
+    "P2P Error Unknow",
+};
+
+char* P2PErrorToString(DWORD Type)
+{
+    if (Type >= P2P_ERROR_UNKNOW)
+    {
+        return P2PErrorName[P2P_ERROR_UNKNOW];
+    }
+
+    return P2PErrorName[Type];
+}
+
 BASE_PACKET_T* CreateTCPInitPkt(DWORD tcpid, WORD UDPPort)
 {
     BASE_PACKET_T* Packet = (BASE_PACKET_T*)malloc(BASE_PACKET_HEADER_LEN + sizeof(TCP_INIT_PACKET));
@@ -99,7 +190,7 @@ BASE_PACKET_T* CreateTCPWaitPkt(DWORD tcpid, CHAR* Keyword, CHAR* name)
     return CreateTCPWaitAndConnPkt(tcpid, Keyword, name, TPT_WAITING);
 }
 
-BASE_PACKET_T* CreateTCPWaitConn(DWORD tcpid, CHAR* Keyword, CHAR* name)
+BASE_PACKET_T* CreateTCPConnPkt(DWORD tcpid, CHAR* Keyword, CHAR* name)
 {
     return CreateTCPWaitAndConnPkt(tcpid, Keyword, name, TPT_CONNECT);
 }
@@ -107,6 +198,14 @@ BASE_PACKET_T* CreateTCPWaitConn(DWORD tcpid, CHAR* Keyword, CHAR* name)
 BASE_PACKET_T* CreateTCPProxyRequest(DWORD tcpid, CHAR* Keyword, CHAR* name)
 {
     return CreateTCPWaitAndConnPkt(tcpid, Keyword, name, TPT_PROXY_REQUEST);
+}
+
+BASE_PACKET_T* CreateP2PSuccessPkt(DWORD tcpid, CHAR* Keyword)
+{
+    CHAR Name[NAME_SIZE];
+    memset(Name, 0, NAME_SIZE);
+
+    return CreateTCPWaitAndConnPkt(tcpid, Keyword, Name, TPT_P2P_RESULT);
 }
 
 BASE_PACKET_T* CreateTCPProxyResultPkt(DWORD tcpid, DWORD peerid, DWORD result)

@@ -23,7 +23,7 @@ BOOL SocketRead(SOCKET s, BYTE* pBuffer, DWORD dwBufferSize, DWORD* pdwReaded, H
         rc = WSARecv(s, &DataBuf, 1, &RecvBytes, &Flags, &RecvOverlapped, NULL);
         if ((rc == SOCKET_ERROR) && (WSA_IO_PENDING != (err = WSAGetLastError())))
         {
-            printf("WSARecv failed with error: %d\n", err);
+            DBG_ERROR("WSARecv failed with error: %d\r\n", err);
             bRet = FALSE;
             break;
         }
@@ -34,7 +34,7 @@ BOOL SocketRead(SOCKET s, BYTE* pBuffer, DWORD dwBufferSize, DWORD* pdwReaded, H
             rc = WSAGetOverlappedResult(s, &RecvOverlapped, &RecvBytes, TRUE, &Flags);
             if (rc == FALSE)
             {
-                printf("WSARecv operation failed with error: %d\n", WSAGetLastError());
+                DBG_ERROR("WSARecv operation failed with error: %d\r\n", WSAGetLastError());
                 bRet = FALSE;
                 break;
             }
@@ -50,7 +50,7 @@ BOOL SocketRead(SOCKET s, BYTE* pBuffer, DWORD dwBufferSize, DWORD* pdwReaded, H
         {
             if (dwRet == WAIT_OBJECT_0 + 1)
             {
-                printf("get exit event \r\n");
+                DBG_TRACE("get exit event \r\n");
             }
 
             WSASetEvent(RecvOverlapped.hEvent);
@@ -105,7 +105,7 @@ BOOL SocketWrite(SOCKET s, BYTE* pBuffer, DWORD dwBufferSize, DWORD* pdwWritten,
 
         if ((rc == SOCKET_ERROR) &&
             (WSA_IO_PENDING != (err = WSAGetLastError()))) {
-            printf("WSASend failed with error: %d\n", err);
+            DBG_ERROR("WSASend failed with error: %d\r\n", err);
             break;
         }
 
@@ -123,7 +123,7 @@ BOOL SocketWrite(SOCKET s, BYTE* pBuffer, DWORD dwBufferSize, DWORD* pdwWritten,
         {
             if (dwRet == WAIT_OBJECT_0 + 1)
             {
-                printf("get exit event \t\n");
+                DBG_TRACE("get exit event \r\n");
 
             }
             WSASetEvent(SendOverlapped.hEvent);
@@ -189,7 +189,7 @@ BOOL SocketRead(SOCKET s, BYTE* pBuffer, DWORD dwBufferSize, DWORD* pdwReaded, H
 
     if (ret == 0)
     {
-        printf("should not be here !!! \r\n");
+        DBG_ERROR("should not be here !!! \r\n");
         return FALSE;
     }
     else
@@ -204,7 +204,7 @@ BOOL SocketRead(SOCKET s, BYTE* pBuffer, DWORD dwBufferSize, DWORD* pdwReaded, H
             }
             else
             {
-                printf("recv select error \r\n");
+                DBG_ERROR("recv select error \r\n");
                 return FALSE;
             }
         }
@@ -212,7 +212,7 @@ BOOL SocketRead(SOCKET s, BYTE* pBuffer, DWORD dwBufferSize, DWORD* pdwReaded, H
         {
             if (FD_ISSET(stopfd, &fdw))
             {
-                printf("recv get stop event \r\n");
+                DBG_ERROR("recv get stop event \r\n");
                 return FALSE;
             }
             else
@@ -279,7 +279,7 @@ BOOL SocketWrite(SOCKET s, BYTE* pBuffer, DWORD dwBufferSize, DWORD* pdwWritten,
 
     if (ret == 0)
     {
-        printf("should not be here !!! \r\n");
+        DBG_ERROR("should not be here !!! \r\n");
         return FALSE;
     }
     else
@@ -293,7 +293,7 @@ BOOL SocketWrite(SOCKET s, BYTE* pBuffer, DWORD dwBufferSize, DWORD* pdwWritten,
             }
             else
             {
-                printf("recv select error \r\n");
+                DBG_ERROR("recv select error \r\n");
                 return FALSE;
             }
         }
@@ -301,7 +301,7 @@ BOOL SocketWrite(SOCKET s, BYTE* pBuffer, DWORD dwBufferSize, DWORD* pdwWritten,
         {
             if (FD_ISSET(stopfd, &fdw))
             {
-                printf("recv get stop event \r\n");
+                DBG_ERROR("recv get stop event \r\n");
                 return FALSE;
             }
             else
@@ -330,7 +330,7 @@ BOOL SocketWrite(SOCKET s, BYTE* pBuffer, DWORD dwBufferSize, DWORD* pdwWritten,
                     }
                     catch (std::exception& e)
                     {
-                        printf("send data error \r\n");
+                        DBG_ERROR("send data error \r\n");
                         return FALSE;
                     }
                 }

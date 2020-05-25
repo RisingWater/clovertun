@@ -3,6 +3,8 @@
 
 #include "P2PServer.h"
 #include "P2PHost.h"
+#include "P2PGuest.h"
+#include "P2PPacket.h"
 
 int main(int argc,char * argv[])
 {
@@ -23,21 +25,21 @@ int main(int argc,char * argv[])
         switch (c)
         {
             case _T('h'):
-                printf("I am Host Client\n");
+                DBG_INFO("I am Host Client\n");
 				isHost = TRUE;
                 isGuest = FALSE;
                 isServer = FALSE;
                 break;
 
             case _T('g'):
-                printf("I am Guest Client\n");
+                DBG_INFO("I am Guest Client\n");
 				isHost = FALSE;
                 isGuest = TRUE;
                 isServer = FALSE;
                 break;
 
             case _T('s'):
-                printf("I am Server\n");
+                DBG_INFO("I am Server\n");
 				isHost = FALSE;
                 isGuest = FALSE;
                 isServer = TRUE;
@@ -46,19 +48,19 @@ int main(int argc,char * argv[])
             case _T('n'):
 				if (!isServer)
 				{
-					printf("name: %s\n", optarg);
+					DBG_INFO("name: %s\n", optarg);
 					strcpy(name, optarg);
 				}
                 break;
             case _T('p'):
-				printf("port: %d\n", atoi(optarg));
+				DBG_INFO("port: %d\n", atoi(optarg));
 				port = atoi(optarg);
                 break;
 
             case _T('a'):
 				if (!isServer)
 				{
-					printf("addr: %s\n", optarg);
+					DBG_INFO("addr: %s\n", optarg);
 					strcpy(addr, optarg);
 				}
                 break;
@@ -66,13 +68,13 @@ int main(int argc,char * argv[])
 			case _T('k'):
 				if (!isServer)
 				{
-					printf("keyword: %s\n", optarg);
+					DBG_INFO("keyword: %s\n", optarg);
 					strcpy(keyword, optarg);
 				}
                 break;
 
             default:
-                printf("WARNING: no handler for option %c\n", c);
+                DBG_ERROR("WARNING: no handler for option %c\n", c);
                 return -1;
                 break;
         }
@@ -86,11 +88,14 @@ int main(int argc,char * argv[])
     else if (isHost)
     {
         CP2PHost* host = new CP2PHost(name, keyword, addr, (WORD)port);
-        host->Run();
+        DWORD ErrorCode = host->Run();
+        DBG_ERROR("Host Run %s\r\n", P2PErrorToString(ErrorCode));
     }
     else if (isGuest)
     {
-
+        CP2PGuest* guest = new CP2PGuest(name, keyword, addr, (WORD)port);
+        DWORD ErrorCode = guest->Run();
+        DBG_ERROR("Guest Run %s\r\n", P2PErrorToString(ErrorCode));
     }
 
 	getchar();

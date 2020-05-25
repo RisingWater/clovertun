@@ -16,7 +16,7 @@ class CTCPClient : public CTCPBase
 {
 public :
 	CTCPClient(CHAR* szRemoteAddress, WORD dwPort);
-	~CTCPClient();
+	virtual ~CTCPClient();
 
     BOOL Init();
     VOID Done();

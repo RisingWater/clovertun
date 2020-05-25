@@ -43,7 +43,7 @@ BOOL CP2PServer::Init()
         }
         else
         {
-            DBG("UDP启动监听成功，本地端口：%d\n", m_dwUDPPort);
+            DBG_INFO("UDP Listening at Port %d\r\n", m_dwUDPPort);
             break;
         }
     }
@@ -121,6 +121,8 @@ BOOL CP2PServer::AcceptTCPSocketProcess(SOCKET s)
         if (tcp->Init())
         {
             DWORD tcpid = CreateTCPID(tcp);
+            
+            DBG_TRACE("TCP[%d] connected\r\n", tcpid);
             BASE_PACKET_T* Packet = CreateTCPInitPkt(tcpid, m_dwUDPPort);
             tcp->SendPacket(Packet);
         }
@@ -135,7 +137,7 @@ VOID CP2PServer::TCPEndProcess(CTCPBase* tcp)
 {
     CTCPServer* server = dynamic_cast<CTCPServer*>(tcp);
     std::map<DWORD, CP2PConnection*>::iterator Itor;
-
+    
     EnterCriticalSection(&m_csP2PConnection);
 
     for (Itor = m_P2PConnectList.begin(); Itor != m_P2PConnectList.end(); Itor++)
@@ -212,6 +214,7 @@ VOID CP2PServer::RemoveTCPID(CTCPServer* server)
     {
         if (TcpItor->second == server)
         {
+            DBG_TRACE("TCP[%d] disconnected\r\n", TcpItor->first);
             m_TCPList.erase(TcpItor);
             server->Release();
             break;
@@ -278,6 +281,8 @@ BOOL CP2PServer::RecvTCPPacketProcess(BASE_PACKET_T* Packet)
             TCP_WAIT_PACKET* Data = (TCP_WAIT_PACKET*)Packet->Data;
             CTCPServer* Server = GetTCPServer(Data->tcpid);
 
+            DBG_TRACE("Recv %s packet from tcp[%d]\n", TCPTypeToString(TPT_WAITING), Data->tcpid);
+
             DWORD Result = P2P_ERROR_UNKNOW;
             if (Server)
             {
@@ -290,6 +295,7 @@ BOOL CP2PServer::RecvTCPPacketProcess(BASE_PACKET_T* Packet)
                 }
                 else
                 {
+                    DBG_ERROR("keyword %s is already register to server, it duplicate!\r\n", Data->keyword);
                     Result = P2P_KEYWORD_DUPLICATE;
                     p2p->Release();
                 }
@@ -307,6 +313,8 @@ BOOL CP2PServer::RecvTCPPacketProcess(BASE_PACKET_T* Packet)
             TCP_CONN_PACKET* Data = (TCP_CONN_PACKET*)Packet->Data;
             CTCPServer* Server = GetTCPServer(Data->tcpid);
 
+            DBG_TRACE("Recv %s packet from tcp[%d]\n", TCPTypeToString(TPT_WAITING), Data->tcpid);
+
             DWORD Result = P2P_ERROR_UNKNOW;
             if (Server)
             {
@@ -318,6 +326,7 @@ BOOL CP2PServer::RecvTCPPacketProcess(BASE_PACKET_T* Packet)
                 }
                 else
                 {
+                    DBG_ERROR("keyword %s is unregistered in server, it's not found\r\n", Data->keyword);
                     Result = P2P_KEYWORD_NOT_FOUND;
                 }
 
@@ -333,10 +342,34 @@ BOOL CP2PServer::RecvTCPPacketProcess(BASE_PACKET_T* Packet)
             break;
         }
 
+        case TPT_P2P_RESULT:
+        {
+            P2P_RESULT_PACKET* Data = (P2P_RESULT_PACKET*)Packet->Data;
+            CTCPServer* Server = GetTCPServer(Data->tcpid);
+
+            DBG_TRACE("Recv %s packet from tcp[%d]\n", TCPTypeToString(TPT_P2P_RESULT), Data->tcpid);
+
+            DWORD Result = P2P_ERROR_UNKNOW;
+            if (Server)
+            {
+                CP2PConnection* p2p = FindP2PConnection((CHAR*)Data->keyword);
+                if (p2p != NULL)
+                {
+                    Result = p2p->SetP2POK(Server);
+                    p2p->Release();
+                }
+                
+                Server->Release();
+            }
+            break;
+        }
+
         case TPT_PROXY_REQUEST:
         {
             TCP_PROXY_REQUEST_PACKET* Data = (TCP_PROXY_REQUEST_PACKET*)Packet->Data;
             CTCPServer* Server = GetTCPServer(Data->tcpid);
+
+            DBG_TRACE("Recv %s packet from tcp[%d]\n", TCPTypeToString(TPT_WAITING), Data->tcpid);
 
             DWORD Result = P2P_ERROR_UNKNOW;
             if (Server)
@@ -349,6 +382,7 @@ BOOL CP2PServer::RecvTCPPacketProcess(BASE_PACKET_T* Packet)
                 }
                 else
                 {
+                    DBG_ERROR("keyword %s is unregistered in server, it's not found\r\n", Data->keyword);
                     Result = P2P_KEYWORD_NOT_FOUND;
                 }
              
