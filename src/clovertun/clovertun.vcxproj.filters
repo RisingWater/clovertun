@@ -1,0 +1,113 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="main.cpp" />
+    <ClCompile Include="UDPBase.cpp">
+      <Filter>UDP</Filter>
+    </ClCompile>
+    <ClCompile Include="TCPCommon.cpp">
+      <Filter>TCP</Filter>
+    </ClCompile>
+    <ClCompile Include="TCPBase.cpp">
+      <Filter>TCP</Filter>
+    </ClCompile>
+    <ClCompile Include="P2PServer.cpp">
+      <Filter>P2P</Filter>
+    </ClCompile>
+    <ClCompile Include="TCPClient.cpp">
+      <Filter>TCP</Filter>
+    </ClCompile>
+    <ClCompile Include="TCPServer.cpp">
+      <Filter>TCP</Filter>
+    </ClCompile>
+    <ClCompile Include="P2PConnection.cpp">
+      <Filter>P2P</Filter>
+    </ClCompile>
+    <ClCompile Include="P2PPacket.cpp">
+      <Filter>P2P</Filter>
+    </ClCompile>
+    <ClCompile Include="P2PClient.cpp">
+      <Filter>P2P</Filter>
+    </ClCompile>
+    <ClCompile Include="P2PHost.cpp">
+      <Filter>P2P</Filter>
+    </ClCompile>
+    <ClCompile Include="P2PGuest.cpp">
+      <Filter>P2P</Filter>
+    </ClCompile>
+    <ClCompile Include="ikcp.c">
+      <Filter>KCP</Filter>
+    </ClCompile>
+    <ClCompile Include="UDPCommon.cpp">
+      <Filter>UDP</Filter>
+    </ClCompile>
+    <ClCompile Include="KCPClient.cpp">
+      <Filter>KCP</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="stdafx.h" />
+    <ClInclude Include="UDPBase.h">
+      <Filter>UDP</Filter>
+    </ClInclude>
+    <ClInclude Include="TCPCommon.h">
+      <Filter>TCP</Filter>
+    </ClInclude>
+    <ClInclude Include="TCPBase.h">
+      <Filter>TCP</Filter>
+    </ClInclude>
+    <ClInclude Include="P2PServer.h">
+      <Filter>P2P</Filter>
+    </ClInclude>
+    <ClInclude Include="TCPClient.h">
+      <Filter>TCP</Filter>
+    </ClInclude>
+    <ClInclude Include="TCPServer.h">
+      <Filter>TCP</Filter>
+    </ClInclude>
+    <ClInclude Include="P2PConnection.h">
+      <Filter>P2P</Filter>
+    </ClInclude>
+    <ClInclude Include="P2PPacket.h">
+      <Filter>P2P</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\clovertun\P2PProtocol.h">
+      <Filter>P2P</Filter>
+    </ClInclude>
+    <ClInclude Include="P2PClient.h">
+      <Filter>P2P</Filter>
+    </ClInclude>
+    <ClInclude Include="P2PHost.h">
+      <Filter>P2P</Filter>
+    </ClInclude>
+    <ClInclude Include="P2PGuest.h">
+      <Filter>P2P</Filter>
+    </ClInclude>
+    <ClInclude Include="ikcp.h">
+      <Filter>KCP</Filter>
+    </ClInclude>
+    <ClInclude Include="UDPCommon.h">
+      <Filter>UDP</Filter>
+    </ClInclude>
+    <ClInclude Include="KCPClient.h">
+      <Filter>KCP</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="Utils">
+      <UniqueIdentifier>{a392dcd2-e1f5-42e0-a0b7-d1e3eff35497}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="UDP">
+      <UniqueIdentifier>{46e7728f-ee67-489e-b4db-423d8565fadf}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="TCP">
+      <UniqueIdentifier>{5a596833-ad57-4d66-b945-ad23398d24c1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="P2P">
+      <UniqueIdentifier>{16d355c4-53c7-4bb1-ac08-648ad3de2ce1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="KCP">
+      <UniqueIdentifier>{2a0d8371-0d84-4c56-b5b5-6501201745b8}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>
