@@ -26,6 +26,8 @@ public :
 	CUDPBase();
 	virtual ~CUDPBase();
 
+    SOCKET GetSocket();
+
     BOOL Init(WORD UdpPort);
     VOID Done();
 

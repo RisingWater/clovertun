@@ -56,6 +56,7 @@ BOOL CTCPClient::Init()
 
 VOID CTCPClient::Done()
 {
+    DBG_TRACE("ctcpclient done\r\n");
     DoneBase();
 
     if (m_hSock != INVALID_SOCKET)

@@ -30,6 +30,7 @@ CP2PConnection::CP2PConnection(TCP_WAIT_PACKET* PacketData, CTCPServer* Server)
 
 CP2PConnection::~CP2PConnection()
 {
+    EnterCriticalSection(&m_csLock);
     if (m_pMainTCPServer)
     {
         m_pMainTCPServer->Release();
@@ -41,6 +42,7 @@ CP2PConnection::~CP2PConnection()
         m_pConnTCPServer->Release();
         m_pMainTCPServer = NULL;
     }
+    LeaveCriticalSection(&m_csLock);
 
     DeleteCriticalSection(&m_csLock);
 }
@@ -313,7 +315,7 @@ VOID CP2PConnection::MainTCPDisconnect()
     {
         m_pConnTCPServer->Done();
         m_pConnTCPServer->Release();
-        m_pMainTCPServer = NULL;
+        m_pConnTCPServer = NULL;
     }
 
     m_dwConnTCPID = 0;

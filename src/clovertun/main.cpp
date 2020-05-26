@@ -6,6 +6,26 @@
 #include "P2PGuest.h"
 #include "P2PPacket.h"
 
+BOOL P2PRecvPacketProcess(PBYTE Data, DWORD Len, CP2PClient* tcp, CBaseObject* Param)
+{
+    UNREFERENCED_PARAMETER(Param);
+
+    DWORD ID = *(DWORD*)Data;
+    if (tcp->GetClientType() == P2P_CLIENT_HOST)
+    {
+        DBG_TRACE("host recv data [%d] %d\r\n", ID, Len);
+        tcp->SendPacket(Data, Len);
+    }
+    else
+    {
+        DBG_TRACE("guest recv data [%d] %d\r\n", ID, Len);
+        ID++;
+        tcp->SendPacket((PBYTE)&ID, sizeof(DWORD));
+    }
+
+    return TRUE;
+}
+
 int main(int argc,char * argv[])
 {
 	int c;
@@ -88,14 +108,18 @@ int main(int argc,char * argv[])
     else if (isHost)
     {
         CP2PHost* host = new CP2PHost(name, keyword, addr, (WORD)port);
-        DWORD ErrorCode = host->Run();
+        host->RegisterRecvPacketProcess(P2PRecvPacketProcess, host);
+        DWORD ErrorCode = host->Listen();
         DBG_ERROR("Host Run %s\r\n", P2PErrorToString(ErrorCode));
     }
     else if (isGuest)
     {
         CP2PGuest* guest = new CP2PGuest(name, keyword, addr, (WORD)port);
-        DWORD ErrorCode = guest->Run();
+        guest->RegisterRecvPacketProcess(P2PRecvPacketProcess, guest);
+        DWORD ErrorCode = guest->Connect();
         DBG_ERROR("Guest Run %s\r\n", P2PErrorToString(ErrorCode));
+        DWORD id = 0;
+        guest->SendPacket((PBYTE)&id, sizeof(DWORD));
     }
 
 	getchar();

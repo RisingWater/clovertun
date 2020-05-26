@@ -22,7 +22,7 @@ public:
 	CP2PHost(CHAR* ClientName, CHAR* Keyword, CHAR* ServerIP, WORD ServerTCPPort);
 	virtual ~CP2PHost();
 
-    DWORD Run();
+    DWORD Listen();
 
 private:
     BOOL StartListening();
@@ -39,7 +39,6 @@ private:
     VOID TCPListeningEventProcess();
     VOID UDPListeningEventProccess();
     VOID UDPPunchEventProcess();
-    VOID UDPConnectEventProcess();
 };
 
 #endif

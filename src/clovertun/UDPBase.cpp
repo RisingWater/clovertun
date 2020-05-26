@@ -1,5 +1,6 @@
 #include "stdafx.h"
 #include "UDPBase.h"
+#include "UDPCommon.h"
 
 #ifdef WIN32
 #define SIO_UDP_CONNRESET _WSAIOW(IOC_VENDOR, 12)
@@ -67,6 +68,12 @@ CUDPBase::~CUDPBase()
         CloseHandle(m_hSendEvent);
     }
 
+    if (m_hSock != INVALID_SOCKET)
+    {
+        closesocket(m_hSock);
+        m_hSock = INVALID_SOCKET;
+    }
+
     DeleteCriticalSection(&m_csSendLock);
     DeleteCriticalSection(&m_csRecvFunc);
 }
@@ -81,6 +88,8 @@ DWORD WINAPI CUDPBase::RecvProc(void* pParam)
             break;
         }
     }
+
+    DBG_INFO("UDPBase: Recv Thread Stop\r\n");
 
     udp->Release();
 
@@ -98,9 +107,16 @@ DWORD WINAPI CUDPBase::SendProc(void* pParam)
         }
     }
 
+    DBG_INFO("UDPBase: Send Thread Stop\r\n");
+
     udp->Release();
 
 	return 0;
+}
+
+SOCKET CUDPBase::GetSocket()
+{
+    return m_hSock;
 }
 
 BOOL CUDPBase::Init(WORD UdpPort)
@@ -138,14 +154,7 @@ BOOL CUDPBase::Init(WORD UdpPort)
 VOID CUDPBase::Done()
 {
     SetEvent(m_hStopEvent);
-
     RegisterRecvProcess(NULL, NULL);
-
-    if (m_hSock != INVALID_SOCKET)
-    {
-        closesocket(m_hSock);
-        m_hSock = INVALID_SOCKET;
-    }
 }
 
 VOID CUDPBase::RegisterRecvProcess(_UDPRecvPacketProcess Process, CBaseObject* Param)
@@ -183,20 +192,24 @@ VOID CUDPBase::SendPacket(UDP_PACKET* Packet)
 
 BOOL CUDPBase::RecvProcess(HANDLE StopEvent)
 {
-    UNREFERENCED_PARAMETER(StopEvent);
-
-    BOOL Ret = FALSE;
     sockaddr_in otherInfo;
-    int otherInfoSize = sizeof(struct sockaddr);
+    DWORD otherInfoSize = sizeof(struct sockaddr);
 
     UDP_PACKET Packet;
     memset(&Packet, 0, sizeof(UDP_PACKET));
+    DWORD Length = 0;
 
-    int length = recvfrom(m_hSock, (char*)&Packet.BasePacket, sizeof(UDPBASE_PACKET), 0, (struct sockaddr*)&otherInfo, &otherInfoSize);
+    BOOL Ret = UDPSocketRecvFrom(m_hSock, (PBYTE)&Packet.BasePacket, sizeof(UDPBASE_PACKET), &Length, (struct sockaddr*)&otherInfo, &otherInfoSize, StopEvent);
 
-    if (length < 0)
+    if (!Ret)
     {
         DBG_ERROR("recv failed last error %d\r\n", GetLastError());
+        return FALSE;
+    }
+
+    if (Length == 0)
+    {
+        DBG_ERROR("recv length == 0 last error %d\r\n", GetLastError());
         return FALSE;
     }
 
@@ -217,11 +230,6 @@ BOOL CUDPBase::RecvProcess(HANDLE StopEvent)
     }
 
     LeaveCriticalSection(&m_csRecvFunc);
-
-    if (!Ret)
-    {
-        DBG_ERROR("Process Packet failed, stop recv thread\r\n");
-    }
 
     return Ret;
 }
@@ -253,7 +261,7 @@ BOOL CUDPBase::SendProcess(HANDLE StopEvent)
         memcpy(&servAddr.sin_addr, &Packet->PacketInfo.ipaddr, sizeof(ADDRESS));
         servAddr.sin_port = Packet->PacketInfo.port;
 
-		sendto(m_hSock, (char*)&Packet->BasePacket, sizeof(UDPBASE_PACKET), 0, (struct sockaddr*)&servAddr, sizeof(struct sockaddr_in));
+		UDPSocketSendTo(m_hSock, (PBYTE)&Packet->BasePacket, sizeof(UDPBASE_PACKET), (struct sockaddr*)&servAddr, sizeof(struct sockaddr_in), StopEvent);
 
         free(Packet);
     }

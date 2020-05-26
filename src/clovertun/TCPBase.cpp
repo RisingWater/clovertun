@@ -86,18 +86,44 @@ VOID CTCPBase::SendPacket(BASE_PACKET_T* Packet)
 
 VOID CTCPBase::RegisterRecvProcess(_TCPRecvPacketProcess Process, CBaseObject* Param)
 {
+    CBaseObject* pOldParam = NULL;
+
     EnterCriticalSection(&m_csFunc);
 	m_pfnRecvFunc = Process;
-	m_pRecvParam = Param;
+
+    pOldParam = m_pRecvParam;
+    m_pRecvParam = Param;
+    if (m_pRecvParam)
+    {
+        m_pRecvParam->AddRef();
+    }
     LeaveCriticalSection(&m_csFunc);
+
+    if (pOldParam)
+    {
+        pOldParam->Release();
+    }       
 }
 
 VOID CTCPBase::RegisterEndProcess(_TCPEndProcess Process, CBaseObject* Param)
 {
+    CBaseObject* pOldParam = NULL;
+
     EnterCriticalSection(&m_csFunc);
 	m_pfnEndFunc = Process;
-	m_pEndParam = Param;
+
+    pOldParam = m_pEndParam;
+    m_pEndParam = Param;
+    if (m_pEndParam)
+    {
+        m_pEndParam->AddRef();
+    }
     LeaveCriticalSection(&m_csFunc);
+
+    if (pOldParam)
+    {
+        pOldParam->Release();
+    }       
 }
 
 DWORD WINAPI CTCPBase::RecvProc(void* pParam)
@@ -118,6 +144,10 @@ DWORD WINAPI CTCPBase::RecvProc(void* pParam)
     }
     LeaveCriticalSection(&tcp->m_csFunc);
 
+    DBG_INFO("CTCPBase: Recv Thread Stop\r\n");
+
+    SetEvent(tcp->m_hStopEvent);
+
 	tcp->Release();
 
 	return 0;
@@ -133,6 +163,8 @@ DWORD WINAPI CTCPBase::SendProc(void* pParam)
 			break;
 		}
 	}
+
+    DBG_INFO("CTCPBase: Send Thread Stop\r\n");
 
 	tcp->Release();
 
@@ -168,7 +200,7 @@ BOOL CTCPBase::SendProcess(HANDLE StopEvent)
 		while (Length > 0)
 		{
 			DWORD sendSize = 0;
-			BOOL res = SocketWrite(m_hSock, Data, Length, &sendSize, StopEvent);
+			BOOL res = TCPSocketWrite(m_hSock, Data, Length, &sendSize, StopEvent);
             if (res)
             {
                 Data += sendSize;
@@ -200,7 +232,7 @@ BOOL CTCPBase::RecvProcess(HANDLE StopEvent)
 	BASE_PACKET_T* Packet = NULL;
 
 	DWORD recvSize;
-	BOOL res = SocketRead(m_hSock, (BYTE*)Buffer, 4096, &recvSize, StopEvent);
+	BOOL res = TCPSocketRead(m_hSock, (BYTE*)Buffer, 4096, &recvSize, StopEvent);
 	if (!res)
 	{
 		return FALSE;

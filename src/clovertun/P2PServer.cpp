@@ -216,6 +216,8 @@ VOID CP2PServer::RemoveTCPID(CTCPServer* server)
         {
             DBG_TRACE("TCP[%d] disconnected\r\n", TcpItor->first);
             m_TCPList.erase(TcpItor);
+            server->RegisterRecvProcess(NULL, NULL);
+            server->RegisterEndProcess(NULL, NULL);
             server->Release();
             break;
         }

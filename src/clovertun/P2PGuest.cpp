@@ -3,7 +3,7 @@
 #include "P2PPacket.h"
 
 CP2PGuest::CP2PGuest(CHAR* ClientName, CHAR* Keyword, CHAR* ServerIP, WORD ServerTCPPort)
-    : CP2PClient(ClientName, Keyword, ServerIP, ServerTCPPort)
+    : CP2PClient(ClientName, Keyword, ServerIP, ServerTCPPort, P2P_CLIENT_GUEST)
 {
 
 }
@@ -13,23 +13,26 @@ CP2PGuest::~CP2PGuest()
 
 }
 
-DWORD CP2PGuest::Run()
+DWORD CP2PGuest::Connect()
 {
-    HANDLE h[2] = {
+    HANDLE h[3] = {
         m_hStatusChange,
         m_hStopEvent,
+        m_hConnectedEvent,
     };
 
-    if (!Connect())
+    if (!StartConnect())
     {
         DBG_ERROR("Connect Failed\r\n");
         m_dwErrorCode = P2P_TCP_CONNECT_ERROR;
         return m_dwErrorCode;
     }
 
+    m_dwErrorCode = P2P_ERROR_NONE;
+
     while (TRUE)
     {
-        DWORD Ret = WaitForMultipleObjects(2, h, FALSE, INFINITE);
+        DWORD Ret = WaitForMultipleObjects(3, h, FALSE, INFINITE);
         if (Ret != WAIT_OBJECT_0)
         {
             break;
@@ -74,12 +77,10 @@ DWORD CP2PGuest::Run()
         }
     }
 
-    Clearup();
-
     return m_dwErrorCode;
 }
 
-BOOL CP2PGuest::Connect()
+BOOL CP2PGuest::StartConnect()
 {
     m_pTCP->RegisterRecvProcess(CP2PGuest::RecvTCPPacketProcessDelegate, this);
     m_pTCP->RegisterEndProcess(CP2PGuest::TCPEndProcessDelegate, this);
@@ -202,11 +203,6 @@ VOID CP2PGuest::UDPPunchEventProcess()
         BASE_PACKET_T* Packet = CreateTCPProxyRequest(m_dwTCPid, m_szKeyword, m_szName);
         m_pTCP->SendPacket(Packet);
     }
-}
-
-VOID CP2PGuest::UDPConnectEventProcess()
-{
-    DBG_TRACE("UDP Connect ok, start kcp ...\r\n");
 }
 
 BOOL CP2PGuest::RecvUDPPacketProcessDelegate(UDP_PACKET* Packet, CUDPBase* udp, CBaseObject* Param)

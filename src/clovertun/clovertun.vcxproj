@@ -11,6 +11,8 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="ikcp.c" />
+    <ClCompile Include="KCPClient.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="P2PClient.cpp" />
     <ClCompile Include="P2PConnection.cpp" />
@@ -23,9 +25,12 @@
     <ClCompile Include="TCPCommon.cpp" />
     <ClCompile Include="TCPServer.cpp" />
     <ClCompile Include="UDPBase.cpp" />
+    <ClCompile Include="UDPCommon.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\include\clovertun\P2PProtocol.h" />
+    <ClInclude Include="ikcp.h" />
+    <ClInclude Include="KCPClient.h" />
     <ClInclude Include="P2PClient.h" />
     <ClInclude Include="P2PConnection.h" />
     <ClInclude Include="P2PGuest.h" />
@@ -38,6 +43,7 @@
     <ClInclude Include="TCPServer.h" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="UDPBase.h" />
+    <ClInclude Include="UDPCommon.h" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\corelib\corelib.vcxproj">

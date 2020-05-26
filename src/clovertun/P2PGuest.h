@@ -22,10 +22,10 @@ public:
     CP2PGuest(CHAR* ClientName, CHAR* Keyword, CHAR* ServerIP, WORD ServerTCPPort);
     virtual ~CP2PGuest();
 
-    DWORD Run();
+    DWORD Connect();
 
 private:
-    BOOL Connect();
+    BOOL StartConnect();
     VOID Clearup();
     
     static BOOL RecvUDPPacketProcessDelegate(UDP_PACKET* Packet, CUDPBase* udp, CBaseObject* Param);
@@ -35,11 +35,10 @@ private:
     BOOL RecvUDPPacketProcess(UDP_PACKET* Packet);
     BOOL RecvTCPPacketProcess(BASE_PACKET_T* Packet);
     VOID TCPEndProcess();
-
+    
     VOID TCPConnectEventProcess();
     VOID UDPConnectEventProccess();
     VOID UDPPunchEventProcess();
-    VOID UDPConnectEventProcess();
 };
 
 #endif

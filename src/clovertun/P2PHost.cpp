@@ -3,7 +3,7 @@
 #include "P2PPacket.h"
 
 CP2PHost::CP2PHost(CHAR* ClientName, CHAR* Keyword, CHAR* ServerIP, WORD ServerTCPPort)
-    : CP2PClient(ClientName, Keyword, ServerIP, ServerTCPPort)
+    : CP2PClient(ClientName, Keyword, ServerIP, ServerTCPPort, P2P_CLIENT_HOST)
 {
 
 }
@@ -13,11 +13,12 @@ CP2PHost::~CP2PHost()
 
 }
 
-DWORD CP2PHost::Run()
+DWORD CP2PHost::Listen()
 {
-    HANDLE h[2] = {
+    HANDLE h[3] = {
         m_hStatusChange,
         m_hStopEvent,
+        m_hConnectedEvent,
     };
 
     if (!StartListening())
@@ -27,9 +28,11 @@ DWORD CP2PHost::Run()
         return m_dwErrorCode;
     }
 
+    m_dwErrorCode = P2P_ERROR_NONE;
+
     while (TRUE)
     {
-        DWORD Ret = WaitForMultipleObjects(2, h, FALSE, INFINITE);
+        DWORD Ret = WaitForMultipleObjects(3, h, FALSE, INFINITE);
         if (Ret != WAIT_OBJECT_0)
         {
             break;
@@ -78,8 +81,6 @@ DWORD CP2PHost::Run()
             }
         }
     }
-
-    Clearup();
 
     return m_dwErrorCode;
 }
@@ -207,11 +208,6 @@ VOID CP2PHost::UDPPunchEventProcess()
         BASE_PACKET_T* Packet = CreateTCPProxyRequest(m_dwTCPid, m_szKeyword, m_szName);
         m_pTCP->SendPacket(Packet);
     }
-}
-
-VOID CP2PHost::UDPConnectEventProcess()
-{
-    DBG_TRACE("UDP Connect ok, start kcp ...\r\n");
 }
 
 BOOL CP2PHost::RecvUDPPacketProcessDelegate(UDP_PACKET* Packet, CUDPBase* udp, CBaseObject* Param)

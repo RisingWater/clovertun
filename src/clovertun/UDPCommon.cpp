@@ -1,9 +1,9 @@
 #include "stdafx.h"
-#include "TCPCommon.h"
+#include "UDPCommon.h"
 
 #ifdef WIN32
 
-BOOL TCPSocketRead(SOCKET s, BYTE* pBuffer, DWORD dwBufferSize, DWORD* pdwReaded, HANDLE hStopEvent)
+BOOL UDPSocketRecvFrom(SOCKET s, BYTE* pBuffer, DWORD dwBufferSize, DWORD* RecvLength, struct sockaddr* addr, DWORD* addrLen, HANDLE hStopEvent)
 {
     BOOL bRet = TRUE;
     int rc;
@@ -20,7 +20,7 @@ BOOL TCPSocketRead(SOCKET s, BYTE* pBuffer, DWORD dwBufferSize, DWORD* pdwReaded
     {
         HANDLE hEvents[2] = { RecvOverlapped.hEvent, hStopEvent };
         Flags = 0;
-        rc = WSARecv(s, &DataBuf, 1, &RecvBytes, &Flags, &RecvOverlapped, NULL);
+        rc = WSARecvFrom(s, &DataBuf, 1, &RecvBytes, &Flags, addr, (LPINT)addrLen, &RecvOverlapped, NULL);
         if ((rc == SOCKET_ERROR) && (WSA_IO_PENDING != (err = WSAGetLastError())))
         {
             DBG_ERROR("WSARecv failed with error: %d\r\n", err);
@@ -50,7 +50,7 @@ BOOL TCPSocketRead(SOCKET s, BYTE* pBuffer, DWORD dwBufferSize, DWORD* pdwReaded
         {
             if (dwRet == WAIT_OBJECT_0 + 1)
             {
-                DBG_TRACE("TCP get exit event \r\n");
+                DBG_TRACE("UDP get exit event \r\n");
             }
 
             WSASetEvent(RecvOverlapped.hEvent);
@@ -61,12 +61,12 @@ BOOL TCPSocketRead(SOCKET s, BYTE* pBuffer, DWORD dwBufferSize, DWORD* pdwReaded
     }
     WSACloseEvent(RecvOverlapped.hEvent);
 
-    *pdwReaded = RecvBytes;
-
+    *RecvLength = RecvBytes;
+    
     return bRet;
 }
 
-BOOL TCPSocketWrite(SOCKET s, BYTE* pBuffer, DWORD dwBufferSize, DWORD* pdwWritten, HANDLE hStopEvent)
+BOOL UDPSocketSendTo(SOCKET s, BYTE* pBuffer, DWORD dwBufferSize, struct sockaddr* addr, DWORD addrLen, HANDLE hStopEvent)
 {
     WSAOVERLAPPED SendOverlapped;
     WSABUF DataBuf;
@@ -96,8 +96,7 @@ BOOL TCPSocketWrite(SOCKET s, BYTE* pBuffer, DWORD dwBufferSize, DWORD* pdwWritt
 
     do
     {
-        rc = WSASend(s, &DataBuf, 1,
-            &SendBytes, 0, &SendOverlapped, NULL);
+        rc = WSASendTo(s, &DataBuf, 1, &SendBytes, 0, addr, addrLen, &SendOverlapped, NULL);
         if (rc == 0)
         {
             bRet = TRUE;
@@ -135,7 +134,6 @@ BOOL TCPSocketWrite(SOCKET s, BYTE* pBuffer, DWORD dwBufferSize, DWORD* pdwWritt
     } while (FALSE);
 
     WSACloseEvent(SendOverlapped.hEvent);
-    *pdwWritten = SendBytes;
 
     return bRet;
 }
@@ -156,7 +154,7 @@ BOOL TCPSocketWrite(SOCKET s, BYTE* pBuffer, DWORD dwBufferSize, DWORD* pdwWritt
 #define MAX(a,b) ((a > b) ? a : b)
 #endif
 
-BOOL TCPSocketRead(SOCKET s, BYTE* pBuffer, DWORD dwBufferSize, DWORD* pdwReaded, HANDLE hStopEvent)
+BOOL UDPSocketRecvFrom(SOCKET s, BYTE* pBuffer, DWORD dwBufferSize, struct sockaddr* addr, DWORD* addrLen, HANDLE hStopEvent)
 {
     fd_set fdw = { 0 };
 
@@ -164,7 +162,6 @@ BOOL TCPSocketRead(SOCKET s, BYTE* pBuffer, DWORD dwBufferSize, DWORD* pdwReaded
     int n;
     int ret = 0;
     int dwReaded = 0;
-    *pdwReaded = 0;
 
     if (s == -1)
     {
@@ -198,7 +195,6 @@ BOOL TCPSocketRead(SOCKET s, BYTE* pBuffer, DWORD dwBufferSize, DWORD* pdwReaded
         {
             if (errno == EWOULDBLOCK)
             {
-                *pdwReaded = 0;
                 ret = 0;
                 return TRUE;
             }
@@ -218,12 +214,10 @@ BOOL TCPSocketRead(SOCKET s, BYTE* pBuffer, DWORD dwBufferSize, DWORD* pdwReaded
             else
                 if (FD_ISSET(s, &fdw))
                 {
-                    dwReaded = recv(s, pBuffer, dwBufferSize, 0);
-                    *pdwReaded = dwReaded;
+                    dwReaded = recvfrom(s, pBuffer, dwBufferSize, 0, addr, addrLen);
 
                     if (dwReaded == 0)
                     {
-                        *pdwReaded = 0;
                         return FALSE;
                     }
                     else
@@ -231,11 +225,9 @@ BOOL TCPSocketRead(SOCKET s, BYTE* pBuffer, DWORD dwBufferSize, DWORD* pdwReaded
                         {
                             if (errno == EWOULDBLOCK)
                             {
-                                *pdwReaded = 0;
                                 return TRUE;
                             }
 
-                            *pdwReaded = 0;
                             return FALSE;
                         }
                         else
@@ -247,7 +239,7 @@ BOOL TCPSocketRead(SOCKET s, BYTE* pBuffer, DWORD dwBufferSize, DWORD* pdwReaded
     }
 }
 
-BOOL TCPSocketWrite(SOCKET s, BYTE* pBuffer, DWORD dwBufferSize, DWORD* pdwWritten, HANDLE hStopEvent)
+BOOL UDPSocketSendTo(SOCKET s, BYTE* pBuffer, DWORD dwBufferSize, struct sockaddr* addr, DWORD addrLen, HANDLE hStopEvent)
 {
     fd_set fdw = { 0 };
 
@@ -255,7 +247,6 @@ BOOL TCPSocketWrite(SOCKET s, BYTE* pBuffer, DWORD dwBufferSize, DWORD* pdwWritt
     int n;
     int ret = 0;
     int dwWrite = 0;
-    *pdwWritten = 0;
 
     if (s == -1)
     {
@@ -310,8 +301,7 @@ BOOL TCPSocketWrite(SOCKET s, BYTE* pBuffer, DWORD dwBufferSize, DWORD* pdwWritt
                     signal(SIGPIPE, SIG_IGN);
                     try
                     {
-                        dwWrite = send(s, pBuffer, dwBufferSize, 0);
-                        *pdwWritten = dwWrite;
+                        dwWrite = sendto(s, pBuffer, dwBufferSize, 0, addr, addrLen);
 
                         if (dwWrite == 0)
                         {
