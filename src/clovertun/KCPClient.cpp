@@ -147,7 +147,7 @@ VOID CKCPClient::KCPInit()
 {
     m_pKcp = ikcp_create(m_dwPeerId, this);
     m_pKcp->output = KCPOutputDelegate;
-    ikcp_nodelay(m_pKcp, 1, 20, 0, 0);
+    ikcp_nodelay(m_pKcp, 1, 10, 1, 1);
 }
 
 VOID CKCPClient::KCPDone()
@@ -203,11 +203,7 @@ BOOL CKCPClient::KCPProcess(HANDLE StopEvent)
             }
         }
     } 
-    else if (Ret == WAIT_TIMEOUT)
-    {
-        return TRUE;
-    }
-    else
+    else if (Ret != WAIT_TIMEOUT)
     {
         return FALSE;
     }
