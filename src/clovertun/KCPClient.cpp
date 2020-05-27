@@ -114,10 +114,23 @@ VOID CKCPClient::SendPacket(PBYTE Data, DWORD Length)
 
 VOID CKCPClient::RegisterRecvProcess(_KCPRecvPacketProcess Process, CBaseObject* Param)
 {
+    CBaseObject* pOldParam = NULL;
+
     EnterCriticalSection(&m_csRecvFunc);
 	m_pfnRecvFunc = Process;
-	m_pRecvParam = Param;
+
+    pOldParam = m_pRecvParam;
+    m_pRecvParam = Param;
+    if (m_pRecvParam)
+    {
+        m_pRecvParam->AddRef();
+    }
     LeaveCriticalSection(&m_csRecvFunc);
+
+    if (pOldParam)
+    {
+        pOldParam->Release();
+    }   
 }
 
 DWORD WINAPI CKCPClient::MainProc(void* pParam)
@@ -170,7 +183,7 @@ BOOL CKCPClient::KCPProcess(HANDLE StopEvent)
 
         free(Packet);
     }
-	LeaveCriticalSection(&m_csSendLock);
+    LeaveCriticalSection(&m_csSendLock);
 
 #ifdef WIN32
     HANDLE h[2] = {
@@ -202,40 +215,47 @@ BOOL CKCPClient::KCPProcess(HANDLE StopEvent)
                 }
             }
         }
-    } 
+    }
     else if (Ret != WAIT_TIMEOUT)
     {
         return FALSE;
     }
 #endif
 
-    BYTE buffer[4096];
-    int len = ikcp_recv(m_pKcp, (char*)buffer, 4096);
-
-    if (len > 0)
-    {
-        DataStreamBufferAddData(m_hDataStreamBuffer, buffer, len);
-    }
-
     while (TRUE)
-	{
-		BASE_PACKET_T* Packet = GetPacketFromBuffer(m_hDataStreamBuffer);
-		if (Packet != NULL)
-		{
-			EnterCriticalSection(&m_csRecvFunc);
-            if (m_pfnRecvFunc)
-			{
-				m_pfnRecvFunc(Packet->Data, Packet->Length - BASE_PACKET_HEADER_LEN, this, m_pRecvParam);
-			}
-			LeaveCriticalSection(&m_csRecvFunc);
+    {
+        BYTE buffer[4096];
+        int len = ikcp_recv(m_pKcp, (char*)buffer, 4096);
 
-            free(Packet);
-		}
-		else
-		{
+        if (len > 0)
+        {
+            DataStreamBufferAddData(m_hDataStreamBuffer, buffer, len);
+        }
+        else
+        {
             break;
-		}
-	}
+        }
+
+        while (TRUE)
+        {
+            BASE_PACKET_T* Packet = GetPacketFromBuffer(m_hDataStreamBuffer);
+            if (Packet != NULL)
+            {
+                EnterCriticalSection(&m_csRecvFunc);
+                if (m_pfnRecvFunc)
+                {
+                    m_pfnRecvFunc(Packet->Data, Packet->Length - BASE_PACKET_HEADER_LEN, this, m_pRecvParam);
+                }
+                LeaveCriticalSection(&m_csRecvFunc);
+
+                free(Packet);
+            }
+            else
+            {
+                break;
+            }
+        }
+    }
 
     return TRUE;
 }

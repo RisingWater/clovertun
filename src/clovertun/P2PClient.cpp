@@ -1,5 +1,6 @@
 #include "stdafx.h"
 #include "P2PClient.h"
+#include "P2PPacket.h"
 
 CP2PClient::CP2PClient(CHAR* ClientName, CHAR* Keyword, CHAR* ServerIP, WORD ServerTCPPort, P2P_CLIENT_TYPE type)
 {
@@ -157,7 +158,8 @@ VOID CP2PClient::SendPacket(PBYTE Data, DWORD Len)
         }
         else if (m_eType == PCT_TCP_RELAY)
         {
-            //TO DO
+            BASE_PACKET_T* Packet = CreateTCPProxyData(m_dwPeerid, m_eClientType == P2P_CLIENT_HOST ? TRUE : FALSE, Data, Len);
+            m_pTCP->SendPacket(Packet);
         }
     }
 
@@ -199,6 +201,16 @@ VOID CP2PClient::UDPConnectEventProcess()
     SetEvent(m_hConnectedEvent);
 }
 
+VOID CP2PClient::TCPProxyEventProcess()
+{
+    DBG_TRACE("TCP Proxy start ...\r\n");
+    m_pUDP->Done();
+
+    m_eType = PCT_TCP_RELAY;
+
+    SetEvent(m_hConnectedEvent);
+}
+
 BOOL CP2PClient::KCPRecvPacketProcessDelegate(PBYTE Data, DWORD Length, CKCPClient* tcp, CBaseObject* Param)
 {
     BOOL Ret = TRUE;
@@ -208,6 +220,24 @@ BOOL CP2PClient::KCPRecvPacketProcessDelegate(PBYTE Data, DWORD Length, CKCPClie
     {
         Ret = kcp->KCPRecvPacketProcess(Data, Length, tcp);
     }
+
+    return Ret;
+}
+
+BOOL CP2PClient::TCPProxyPacketProcess(BASE_PACKET_T* Packet)
+{
+    BOOL Ret = TRUE;
+
+    TCP_PROXY_DATA* Proxy = (TCP_PROXY_DATA*)Packet;
+
+    EnterCriticalSection(&m_csLock);
+
+    if (m_pfnRecvFunc)
+    {
+        Ret = m_pfnRecvFunc(Proxy->Data, Proxy->Length, this, m_pParam);
+    }
+
+    LeaveCriticalSection(&m_csLock);
 
     return Ret;
 }

@@ -139,8 +139,11 @@ typedef struct
 {
     DWORD       Peerid;
     DWORD       Host2Guest;
-    BYTE        Length[1];
+    DWORD       Length;
+    BYTE        Data[1];
 } TCP_PROXY_DATA;
+
+#define TCP_PROXY_DATA_HEADER_LEN (sizeof(TCP_PROXY_DATA) - 1)
 
 #pragma pack()
 

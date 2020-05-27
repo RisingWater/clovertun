@@ -53,6 +53,9 @@ protected:
     VOID SendUDPToPeer(DWORD Type);
 
     VOID UDPConnectEventProcess();
+    VOID TCPProxyEventProcess();
+
+    BOOL TCPProxyPacketProcess(BASE_PACKET_T* Packet);
 
     static BOOL KCPRecvPacketProcessDelegate(PBYTE Data, DWORD Length, CKCPClient* tcp, CBaseObject* Param);
     BOOL KCPRecvPacketProcess(PBYTE Data, DWORD Length, CKCPClient* tcp);

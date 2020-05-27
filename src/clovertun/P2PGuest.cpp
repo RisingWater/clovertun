@@ -67,7 +67,7 @@ DWORD CP2PGuest::Connect()
             case P2P_TCP_PROXY:
             {
                 ResetEvent(m_hStatusChange);
-                DBG_INFO("SWITCH TO TCP RELAY\r\n");
+                TCPProxyEventProcess();
                 break;
             }
             default:
@@ -390,6 +390,14 @@ BOOL CP2PGuest::RecvTCPPacketProcess(BASE_PACKET_T* Packet)
             {
                 SetState(P2P_TCP_PROXY);
                 SetEvent(m_hStatusChange);
+            }
+            break;
+        }
+        case TPT_DATA_PROXY:
+        {
+            if (m_eStatus == P2P_TCP_PROXY)
+            {
+                Ret = TCPProxyPacketProcess(Packet);
             }
             break;
         }

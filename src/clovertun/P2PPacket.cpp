@@ -231,13 +231,34 @@ BASE_PACKET_T* CreateTCPProxyData(TCP_PROXY_DATA* Data, DWORD Length)
 {
     BASE_PACKET_T* Packet = (BASE_PACKET_T*)malloc(BASE_PACKET_HEADER_LEN + Length);
 
-    memset(Packet, 0, sizeof(BASE_PACKET_HEADER_LEN + sizeof(TCP_START_PUNCHING_PACKET)));
+    memset(Packet, 0, sizeof(BASE_PACKET_HEADER_LEN + Length));
 
-    Packet->Length = BASE_PACKET_HEADER_LEN + sizeof(TCP_START_PUNCHING_PACKET);
+    Packet->Length = BASE_PACKET_HEADER_LEN + Length;
 
     Packet->Type = TPT_DATA_PROXY;
 
     memcpy(Packet->Data, Data, Length);
+
+    return Packet;
+}
+
+BASE_PACKET_T* CreateTCPProxyData(DWORD Peerid, DWORD Host2Guest, PBYTE Data, DWORD Length)
+{
+    BASE_PACKET_T* Packet = (BASE_PACKET_T*)malloc(BASE_PACKET_HEADER_LEN + TCP_PROXY_DATA_HEADER_LEN + Length);
+
+    memset(Packet, 0, sizeof(BASE_PACKET_HEADER_LEN + TCP_PROXY_DATA_HEADER_LEN + Length));
+
+    Packet->Length = BASE_PACKET_HEADER_LEN + TCP_PROXY_DATA_HEADER_LEN + Length;
+
+    Packet->Type = TPT_DATA_PROXY;
+
+    TCP_PROXY_DATA* Proxy = (TCP_PROXY_DATA*)Packet->Data;
+
+    Proxy->Host2Guest = Host2Guest;
+    Proxy->Peerid = Peerid;
+    Proxy->Length = Length;
+
+    memcpy(Proxy->Data, Data, Length);
 
     return Packet;
 }

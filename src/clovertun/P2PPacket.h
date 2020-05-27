@@ -24,6 +24,7 @@ BASE_PACKET_T* CreateP2PSuccessPkt(DWORD tcpid, CHAR* Keyword);
 
 BASE_PACKET_T* CreateTCPProxyResultPkt(DWORD tcpid, DWORD peerid, DWORD result);
 BASE_PACKET_T* CreateTCPProxyData(TCP_PROXY_DATA* Data, DWORD Length);
+BASE_PACKET_T* CreateTCPProxyData(DWORD Peerid, DWORD Host2Guest, PBYTE Data, DWORD Length);
 
 char* TCPTypeToString(DWORD Type);
 char* UDPTypeToString(DWORD Type);
