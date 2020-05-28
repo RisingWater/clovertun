@@ -77,6 +77,7 @@ typedef enum
     UPT_KEEPALIVE,
     UPT_P2P_SUCCESS,
     UPT_KCP,
+    UPT_ENET,
     UPT_MAX,
 } UDPBASE_PACKET_TYPE;
 
