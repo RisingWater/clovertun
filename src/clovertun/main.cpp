@@ -1,26 +1,42 @@
-#include "stdafx.h"
+﻿#include "stdafx.h"
 #include "XGetOpt.h"
 
 #include "P2PServer.h"
 #include "P2PHost.h"
 #include "P2PGuest.h"
 #include "P2PPacket.h"
+#include <enet/enet.h>
+
+typedef struct {
+    DWORD id;
+    DWORD datalen;
+    BYTE data[0];
+} transfer_data;
+
+#define DATA_SIZE 4096
 
 BOOL P2PRecvPacketProcess(PBYTE Data, DWORD Len, CP2PClient* tcp, CBaseObject* Param)
 {
     UNREFERENCED_PARAMETER(Param);
+    UNREFERENCED_PARAMETER(Len);
 
-    DWORD ID = *(DWORD*)Data;
+    transfer_data* databuffer = (transfer_data*)Data;
+
     if (tcp->GetClientType() == P2P_CLIENT_HOST)
     {
-        DBG_TRACE("host recv data [%d] %d\r\n", ID, Len);
-        tcp->SendPacket(Data, Len);
-    }
-    else
-    {
-        DBG_TRACE("guest recv data [%d] %d\r\n", ID, Len);
-        ID++;
-        tcp->SendPacket((PBYTE)&ID, sizeof(DWORD));
+        if (databuffer->id % 100 == 0)
+        {
+            DBG_TRACE("host recv data [%d] %d\r\n", databuffer->id, databuffer->datalen);
+        }
+
+        //FILE* fp = fopen("d:\\outpu.zip", "ab+");
+        //if (fp && databuffer->datalen > 0)
+        //{
+        //    fwrite(databuffer->data, 1, databuffer->datalen, fp);
+        //    fclose(fp);
+        //}
+
+        tcp->SendPacket((PBYTE)databuffer, sizeof(transfer_data));
     }
 
     return TRUE;
@@ -37,8 +53,10 @@ int main(int argc,char * argv[])
     BOOL isHost = FALSE;
     BOOL isGuest = FALSE;
 
-	WSADATA wsaData;
-	WSAStartup(MAKEWORD(2, 2), &wsaData);
+	//WSADATA wsaData;
+	//WSAStartup(MAKEWORD(2, 2), &wsaData);
+
+    enet_initialize();
 
 	while ((c = getopt(argc, argv, _T("hgsn:k:a:p:"))) != -1)
     {
@@ -118,11 +136,33 @@ int main(int argc,char * argv[])
         guest->RegisterRecvPacketProcess(P2PRecvPacketProcess, guest);
         DWORD ErrorCode = guest->Connect();
         DBG_ERROR("Guest Run %s\r\n", P2PErrorToString(ErrorCode));
+                
         DWORD id = 0;
-        guest->SendPacket((PBYTE)&id, sizeof(DWORD));
+        FILE* fp = fopen("d:\\input.zip", "rb");
+        if (fp)
+        {
+            while (TRUE)
+            {
+                transfer_data* DataBuffer = (transfer_data*)malloc(sizeof(transfer_data) + DATA_SIZE);
+                DataBuffer->datalen = fread(DataBuffer->data, 1, DATA_SIZE, fp);
+                if (DataBuffer->datalen <= 0)
+                {
+                    break;
+                }
+                DataBuffer->id = id++;
+                DBG_TRACE("send packet %d len %d\r\n", DataBuffer->id, DataBuffer->datalen);
+
+                guest->SendPacket((PBYTE)DataBuffer, sizeof(transfer_data) + DATA_SIZE);
+
+                free(DataBuffer);
+            }
+            fclose(fp);
+        }
     }
 
 	getchar();
+
+    enet_deinitialize();
 }
 
 

@@ -7,6 +7,7 @@ CP2PServer::CP2PServer(WORD TcpPort) :	CBaseObject()
     m_dwTCPPort = TcpPort;
     m_pUDP = new CUDPBase();
     m_pTCPService = new CTCPService(m_dwTCPPort);
+    m_dwTCPid = 1;
 
     InitializeCriticalSection(&m_csTCPList);
     InitializeCriticalSection(&m_csP2PConnection);

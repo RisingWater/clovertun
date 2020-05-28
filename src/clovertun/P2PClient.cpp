@@ -20,7 +20,7 @@ CP2PClient::CP2PClient(CHAR* ClientName, CHAR* Keyword, CHAR* ServerIP, WORD Ser
 
     m_pUDP = new CUDPBase();
     m_pTCP = new CTCPClient(m_szServerIP, m_dwServerTCPPort);
-    m_pKCP = NULL;
+    m_pENet = NULL;
     
     m_hStopEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
     m_hStatusChange = CreateEvent(NULL, TRUE, FALSE, NULL);
@@ -92,10 +92,10 @@ VOID CP2PClient::Done()
     m_pTCP->Done();
     m_pUDP->Done();
 
-    if (m_pKCP)
+    if (m_pENet)
     {
-        m_pKCP->RegisterRecvProcess(NULL, NULL);
-        m_pKCP->Done();
+        m_pENet->RegisterRecvProcess(NULL, NULL);
+        m_pENet->Done();
     }
 }
 
@@ -152,9 +152,9 @@ VOID CP2PClient::SendPacket(PBYTE Data, DWORD Len)
     }
     else
     {
-        if (m_eType == PCT_KCP)
+        if (m_eType == PCT_ENET)
         {
-            m_pKCP->SendPacket(Data, Len);
+            m_pENet->SendPacket(Data, Len);
         }
         else if (m_eType == PCT_TCP_RELAY)
         {
@@ -192,11 +192,11 @@ VOID CP2PClient::UDPConnectEventProcess()
     DBG_TRACE("UDP Connect ok, start kcp ...\r\n");
 
     m_pUDP->Done();
-    m_pKCP = new CKCPClient(m_pUDP->GetSocket(), m_dwPeerid, m_stRemoteClientInfo);
-    m_pKCP->RegisterRecvProcess(CP2PClient::KCPRecvPacketProcessDelegate, this);
-    m_pKCP->Init();
+    m_pENet = new CENetClient(m_pUDP->GetSocket(), m_dwPeerid, m_stRemoteClientInfo, m_eClientType == P2P_CLIENT_HOST);
+    m_pENet->RegisterRecvProcess(CP2PClient::ENetRecvPacketProcessDelegate, this);
+    m_pENet->Init();
 
-    m_eType = PCT_KCP;
+    m_eType = PCT_ENET;
 
     SetEvent(m_hConnectedEvent);
 }
@@ -211,14 +211,14 @@ VOID CP2PClient::TCPProxyEventProcess()
     SetEvent(m_hConnectedEvent);
 }
 
-BOOL CP2PClient::KCPRecvPacketProcessDelegate(PBYTE Data, DWORD Length, CKCPClient* tcp, CBaseObject* Param)
+BOOL CP2PClient::ENetRecvPacketProcessDelegate(PBYTE Data, DWORD Length, CENetClient* tcp, CBaseObject* Param)
 {
     BOOL Ret = TRUE;
     CP2PClient* kcp = dynamic_cast<CP2PClient*>(Param);
 
     if (kcp)
     {
-        Ret = kcp->KCPRecvPacketProcess(Data, Length, tcp);
+        Ret = kcp->ENetRecvPacketProcess(Data, Length, tcp);
     }
 
     return Ret;
@@ -242,7 +242,7 @@ BOOL CP2PClient::TCPProxyPacketProcess(BASE_PACKET_T* Packet)
     return Ret;
 }
 
-BOOL CP2PClient::KCPRecvPacketProcess(PBYTE Data, DWORD Length, CKCPClient* tcp)
+BOOL CP2PClient::ENetRecvPacketProcess(PBYTE Data, DWORD Length, CENetClient* tcp)
 {
     BOOL Ret = TRUE;
 

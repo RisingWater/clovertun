@@ -16,12 +16,12 @@
 
 #include "UDPBase.h"
 #include "TCPClient.h"
-#include "KCPClient.h"
+#include "ENetClient.h"
 
 typedef enum
 {
     PCT_NONE,
-    PCT_KCP,
+    PCT_ENET,
     PCT_TCP_RELAY,
 } P2P_COMM_TYPE;
 
@@ -57,8 +57,8 @@ protected:
 
     BOOL TCPProxyPacketProcess(BASE_PACKET_T* Packet);
 
-    static BOOL KCPRecvPacketProcessDelegate(PBYTE Data, DWORD Length, CKCPClient* tcp, CBaseObject* Param);
-    BOOL KCPRecvPacketProcess(PBYTE Data, DWORD Length, CKCPClient* tcp);
+    static BOOL ENetRecvPacketProcessDelegate(PBYTE Data, DWORD Length, CENetClient* tcp, CBaseObject* Param);
+    BOOL ENetRecvPacketProcess(PBYTE Data, DWORD Length, CENetClient* tcp);
 
 	CHAR m_szName[32];
     CHAR m_szKeyword[32];
@@ -75,7 +75,7 @@ protected:
 
     CUDPBase* m_pUDP;
     CTCPClient* m_pTCP;
-    CKCPClient* m_pKCP;
+    CENetClient* m_pENet;
 
     DWORD m_dwErrorCode;
 

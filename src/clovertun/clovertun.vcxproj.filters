@@ -35,14 +35,11 @@
     <ClCompile Include="P2PGuest.cpp">
       <Filter>P2P</Filter>
     </ClCompile>
-    <ClCompile Include="ikcp.c">
-      <Filter>KCP</Filter>
-    </ClCompile>
     <ClCompile Include="UDPCommon.cpp">
       <Filter>UDP</Filter>
     </ClCompile>
-    <ClCompile Include="KCPClient.cpp">
-      <Filter>KCP</Filter>
+    <ClCompile Include="ENetClient.cpp">
+      <Filter>ENet</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -83,14 +80,11 @@
     <ClInclude Include="P2PGuest.h">
       <Filter>P2P</Filter>
     </ClInclude>
-    <ClInclude Include="ikcp.h">
-      <Filter>KCP</Filter>
-    </ClInclude>
     <ClInclude Include="UDPCommon.h">
       <Filter>UDP</Filter>
     </ClInclude>
-    <ClInclude Include="KCPClient.h">
-      <Filter>KCP</Filter>
+    <ClInclude Include="ENetClient.h">
+      <Filter>ENet</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -106,8 +100,8 @@
     <Filter Include="P2P">
       <UniqueIdentifier>{16d355c4-53c7-4bb1-ac08-648ad3de2ce1}</UniqueIdentifier>
     </Filter>
-    <Filter Include="KCP">
-      <UniqueIdentifier>{2a0d8371-0d84-4c56-b5b5-6501201745b8}</UniqueIdentifier>
+    <Filter Include="ENet">
+      <UniqueIdentifier>{412907e4-e6d4-42ec-a831-d089de5ef284}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>
