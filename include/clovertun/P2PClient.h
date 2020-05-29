@@ -14,6 +14,11 @@
 #include <arpa/inet.h>
 #endif
 
+#include "BaseObject.h"
+#include "P2PProtocol.h"
+#include "BasePacket.h"
+
+class CTCPBase;
 class CUDPBase;
 class CTCPClient;
 class CENetClient;

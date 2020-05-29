@@ -1,5 +1,6 @@
 #include "stdafx.h"
 #include "P2PHost.h"
+#include "TCPClient.h"
 #include "P2PPacket.h"
 
 CP2PHost::CP2PHost(CHAR* ClientName, CHAR* Keyword, CHAR* ServerIP, WORD ServerTCPPort)

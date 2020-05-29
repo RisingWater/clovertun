@@ -1,5 +1,6 @@
 #include "stdafx.h"
 #include "P2PGuest.h"
+#include "TCPClient.h"
 #include "P2PPacket.h"
 
 CP2PGuest::CP2PGuest(CHAR* ClientName, CHAR* Keyword, CHAR* ServerIP, WORD ServerTCPPort)

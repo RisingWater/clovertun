@@ -27,14 +27,13 @@
     <ClCompile Include="UDPCommon.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\include\clovertun\P2PClient.h" />
+    <ClInclude Include="..\..\include\clovertun\P2PGuest.h" />
+    <ClInclude Include="..\..\include\clovertun\P2PHost.h" />
     <ClInclude Include="..\..\include\clovertun\P2PProtocol.h" />
     <ClInclude Include="ENetClient.h" />
-    <ClInclude Include="P2PClient.h" />
     <ClInclude Include="P2PConnection.h" />
-    <ClInclude Include="P2PGuest.h" />
-    <ClInclude Include="P2PHost.h" />
     <ClInclude Include="P2PPacket.h" />
-    <ClInclude Include="P2PServer.h" />
     <ClInclude Include="TCPBase.h" />
     <ClInclude Include="TCPClient.h" />
     <ClInclude Include="TCPCommon.h" />
@@ -60,7 +59,7 @@
     <CharacterSet>MultiByte</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
+    <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <PlatformToolset>v120</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>

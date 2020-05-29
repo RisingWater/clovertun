@@ -11,11 +11,15 @@
 #endif
 
 #include <map>
+#include "BaseObject.h"
+#include "P2PProtocol.h"
+#include "BasePacket.h"
 
 class CTCPServer;
 class CTCPService;
 class CP2PConnection;
 class CUDPBase;
+class CTCPBase;
 
 class CP2PServer : public CBaseObject
 {

@@ -53,9 +53,6 @@
     <ClInclude Include="TCPBase.h">
       <Filter>TCP</Filter>
     </ClInclude>
-    <ClInclude Include="P2PServer.h">
-      <Filter>P2P</Filter>
-    </ClInclude>
     <ClInclude Include="TCPClient.h">
       <Filter>TCP</Filter>
     </ClInclude>
@@ -71,20 +68,20 @@
     <ClInclude Include="..\..\include\clovertun\P2PProtocol.h">
       <Filter>P2P</Filter>
     </ClInclude>
-    <ClInclude Include="P2PClient.h">
-      <Filter>P2P</Filter>
-    </ClInclude>
-    <ClInclude Include="P2PHost.h">
-      <Filter>P2P</Filter>
-    </ClInclude>
-    <ClInclude Include="P2PGuest.h">
-      <Filter>P2P</Filter>
-    </ClInclude>
     <ClInclude Include="UDPCommon.h">
       <Filter>UDP</Filter>
     </ClInclude>
     <ClInclude Include="ENetClient.h">
       <Filter>ENet</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\clovertun\P2PClient.h">
+      <Filter>P2P</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\clovertun\P2PGuest.h">
+      <Filter>P2P</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\clovertun\P2PHost.h">
+      <Filter>P2P</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
