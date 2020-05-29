@@ -1,6 +1,9 @@
 #include "stdafx.h"
 #include "P2PServer.h"
 #include "P2PPacket.h"
+#include "UDPBase.h"
+#include "TCPServer.h"
+#include "P2PConnection.h"
 
 CP2PServer::CP2PServer(WORD TcpPort) :	CBaseObject()
 {

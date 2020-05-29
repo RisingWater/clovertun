@@ -1,5 +1,8 @@
 #include "stdafx.h"
 #include "P2PClient.h"
+#include "UDPBase.h"
+#include "TCPClient.h"
+#include "ENetClient.h"
 #include "P2PPacket.h"
 
 CP2PClient::CP2PClient(CHAR* ClientName, CHAR* Keyword, CHAR* ServerIP, WORD ServerTCPPort, P2P_CLIENT_TYPE type)

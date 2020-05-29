@@ -14,9 +14,9 @@
 #include <arpa/inet.h>
 #endif
 
-#include "UDPBase.h"
-#include "TCPClient.h"
-#include "ENetClient.h"
+class CUDPBase;
+class CTCPClient;
+class CENetClient;
 
 typedef enum
 {

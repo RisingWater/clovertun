@@ -10,10 +10,12 @@
 #include <winpr/wtypes.h>
 #endif
 
-#include "UDPBase.h"
-#include "TCPServer.h"
-#include "P2PConnection.h"
 #include <map>
+
+class CTCPServer;
+class CTCPService;
+class CP2PConnection;
+class CUDPBase;
 
 class CP2PServer : public CBaseObject
 {
