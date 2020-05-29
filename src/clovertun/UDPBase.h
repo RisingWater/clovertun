@@ -29,7 +29,8 @@ public :
     SOCKET GetSocket();
 
     BOOL Init(WORD UdpPort);
-    VOID Done();
+    VOID Start();
+    VOID Stop();
 
     VOID SendPacket(UDP_PACKET* Packet);
     VOID RegisterRecvProcess(_UDPRecvPacketProcess Process, CBaseObject* Param);

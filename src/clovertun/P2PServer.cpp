@@ -44,6 +44,7 @@ BOOL CP2PServer::Init()
         }
         else
         {
+            m_pUDP->Start();
             DBG_INFO("UDP Listening at Port %d\r\n", m_dwUDPPort);
             break;
         }

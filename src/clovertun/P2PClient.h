@@ -49,13 +49,24 @@ protected:
     BOOL Init();
     VOID Done();
 
-    VOID SendUDPToServer(BOOL IsHost);
+    virtual BOOL RecvTCPPacketProcess(BASE_PACKET_T* Packet) = 0;
+    BOOL RecvUDPPacketProcess(UDP_PACKET* Packet);
+    VOID TCPEndProcess();
+
+    static BOOL RecvUDPPacketProcessDelegate(UDP_PACKET* Packet, CUDPBase* udp, CBaseObject* Param);
+    static BOOL RecvTCPPacketProcessDelegate(BASE_PACKET_T* Packet, CTCPBase* tcp, CBaseObject* Param);
+    static VOID TCPEndProcessDelegate(CTCPBase* tcp, CBaseObject* Param);
+
+    VOID SendUDPToServer();
     VOID SendUDPToPeer(DWORD Type);
 
-    VOID UDPConnectEventProcess();
+    VOID UDPInfoExchangeEventProccess();
+    VOID UDPPunchEventProcess();
+    VOID P2PConnectEventProcess();
     VOID TCPProxyEventProcess();
 
     BOOL TCPProxyPacketProcess(BASE_PACKET_T* Packet);
+    
 
     static BOOL ENetRecvPacketProcessDelegate(PBYTE Data, DWORD Length, CENetClient* tcp, CBaseObject* Param);
     BOOL ENetRecvPacketProcess(PBYTE Data, DWORD Length, CENetClient* tcp);
@@ -74,8 +85,13 @@ protected:
     CLIENT_INFO m_stRemoteClientInfo;
 
     CUDPBase* m_pUDP;
+    CRITICAL_SECTION m_csUDPLock;
+
     CTCPClient* m_pTCP;
+    CRITICAL_SECTION m_csTCPLock;
+
     CENetClient* m_pENet;
+    CRITICAL_SECTION m_csENetLock;
 
     DWORD m_dwErrorCode;
 

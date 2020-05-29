@@ -57,6 +57,9 @@ BOOL CTCPClient::Init()
 VOID CTCPClient::Done()
 {
     DBG_TRACE("ctcpclient done\r\n");
+    RegisterRecvProcess(NULL, NULL);
+    RegisterEndProcess(NULL, NULL);
+
     DoneBase();
 
     if (m_hSock != INVALID_SOCKET)

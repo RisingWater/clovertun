@@ -13,20 +13,42 @@ CP2PHost::~CP2PHost()
 
 }
 
+VOID CP2PHost::Close()
+{
+    SetEvent(m_hStopEvent);
+    Done();
+}
+
 DWORD CP2PHost::Listen()
 {
-    HANDLE h[3] = {
-        m_hStatusChange,
-        m_hStopEvent,
-        m_hConnectedEvent,
-    };
-
-    if (!StartListening())
+    if (!Init())
     {
         DBG_ERROR("Start Listening Failed\r\n");
         m_dwErrorCode = P2P_TCP_CONNECT_ERROR;
         return m_dwErrorCode;
     }
+
+    return P2P_ERROR_NONE;
+}
+
+VOID CP2PHost::WaitForStop()
+{
+    DWORD Ret = WaitForSingleObject(m_hStopEvent, INFINITE);
+    if (Ret != WAIT_OBJECT_0)
+    {
+        DBG_ERROR("Wait Error %d\r\n", Ret);
+    }
+}
+
+DWORD CP2PHost::Accept()
+{
+    ResetEvent(m_hStopEvent);
+    
+    HANDLE h[3] = {
+        m_hStatusChange,
+        m_hStopEvent,
+        m_hConnectedEvent,
+    };
 
     m_dwErrorCode = P2P_ERROR_NONE;
 
@@ -54,7 +76,7 @@ DWORD CP2PHost::Listen()
             case P2P_UDP_LISTENING:
             {
                 ResetEvent(m_hStatusChange);
-                UDPListeningEventProccess();
+                UDPInfoExchangeEventProccess();
                 break;
             }
             case P2P_PUNCHING:
@@ -66,7 +88,7 @@ DWORD CP2PHost::Listen()
             case P2P_CONNECTED:
             {
                 ResetEvent(m_hStatusChange);
-                UDPConnectEventProcess();
+                P2PConnectEventProcess();
                 break;
             }
             case P2P_TCP_PROXY:
@@ -82,229 +104,26 @@ DWORD CP2PHost::Listen()
         }
     }
 
+    ResetEvent(m_hConnectedEvent);
+    
     return m_dwErrorCode;
-}
-
-BOOL CP2PHost::StartListening()
-{
-    m_pTCP->RegisterRecvProcess(CP2PHost::RecvTCPPacketProcessDelegate, this);
-    m_pTCP->RegisterEndProcess(CP2PHost::TCPEndProcessDelegate, this);
-    m_pUDP->RegisterRecvProcess(CP2PHost::RecvUDPPacketProcessDelegate, this);
-
-    return Init();
-}
-
-VOID CP2PHost::Clearup()
-{
-    Done();
 }
 
 VOID CP2PHost::TCPListeningEventProcess()
 {
     DBG_TRACE("Send %s Packet to Server\r\n", TCPTypeToString(TPT_WAITING));
     BASE_PACKET_T* Packet = CreateTCPWaitPkt(m_dwTCPid, m_szKeyword, m_szName);
-    m_pTCP->SendPacket(Packet);
-}
 
-VOID CP2PHost::UDPListeningEventProccess()
-{
-    DWORD Ret = 0;
-    DWORD Retry = 0;
-    BOOL timeout = FALSE;
-
-    HANDLE h[2] = {
-        m_hStatusChange,
-        m_hStopEvent,
-    };
-
-    while (TRUE)
+    EnterCriticalSection(&m_csTCPLock);
+    if (m_pTCP)
     {
-        //send udp to server
-        DBG_TRACE("Send %s Packet to Server\r\n", UDPTypeToString(UPT_WAITING));
-        SendUDPToServer(TRUE);
-
-        //wait 500ms to retry
-        Ret = WaitForMultipleObjects(2, h, FALSE, 200);
-        if (Ret != WAIT_TIMEOUT)
-        {
-            break;
-        }
-        else
-        {
-            Retry++;
-        }
-
-        //wait for total 2s
-        if (Retry >= 10)
-        {
-            timeout = TRUE;
-            break;
-        }
-    }
-
-    if (Ret != WAIT_OBJECT_0 || Ret != WAIT_TIMEOUT)
-    {
-        return;
-    }
-
-    //if timeout, means udp failed, turn to tcp relay
-    //otherwise, use main loop to deal with event
-    if (timeout)
-    {
-        DBG_INFO("udp handshake failed, turn to TCP Relay\r\n");
-        SetState(P2P_TCP_PROXY_REQUEST);
-        BASE_PACKET_T* Packet = CreateTCPProxyRequest(m_dwTCPid, m_szKeyword, m_szName);
         m_pTCP->SendPacket(Packet);
     }
-}
-
-VOID CP2PHost::UDPPunchEventProcess()
-{
-    DWORD Ret = 0;
-    DWORD Retry = 0;
-    BOOL timeout = FALSE;
-
-    HANDLE h[2] = {
-        m_hStatusChange,
-        m_hStopEvent,
-    };
-
-    while (TRUE)
+    else
     {
-        //send udp to peer
-        DBG_TRACE("Send %s Packet to guest\r\n", UDPTypeToString(UPT_HANDSHAKE));
-        SendUDPToPeer(UPT_HANDSHAKE);
-
-        //wait 500ms to retry
-        Ret = WaitForMultipleObjects(2, h, FALSE, 200);
-        if (Ret != WAIT_TIMEOUT)
-        {
-            break;
-        }
-        else
-        {
-            Retry++;
-        }
-
-        //wait for total 2s
-        if (Retry >= 10)
-        {
-            timeout = TRUE;
-            break;
-        }
+        free(Packet);
     }
-
-    if (Ret != WAIT_OBJECT_0 || Ret != WAIT_TIMEOUT)
-    {
-        return;
-    }
-
-    //if timeout, means udp failed, turn to tcp relay
-    //otherwise, use main loop to deal with event
-    if (timeout)
-    {
-        DBG_INFO("udp handshake failed, turn to TCP Relay\r\n");
-        SetState(P2P_TCP_PROXY_REQUEST);
-        BASE_PACKET_T* Packet = CreateTCPProxyRequest(m_dwTCPid, m_szKeyword, m_szName);
-        m_pTCP->SendPacket(Packet);
-    }
-}
-
-BOOL CP2PHost::RecvUDPPacketProcessDelegate(UDP_PACKET* Packet, CUDPBase* udp, CBaseObject* Param)
-{
-    UNREFERENCED_PARAMETER(udp);
-
-    BOOL Ret = FALSE;
-    CP2PHost* Host = dynamic_cast<CP2PHost*>(Param);
-
-    if (Host)
-    {
-        Ret = Host->RecvUDPPacketProcess(Packet);
-    }
-
-    return Ret;
-}
-
-BOOL CP2PHost::RecvTCPPacketProcessDelegate(BASE_PACKET_T* Packet, CTCPBase* tcp, CBaseObject* Param)
-{
-    UNREFERENCED_PARAMETER(tcp);
-
-    BOOL Ret = FALSE;
-    CP2PHost* Host = dynamic_cast<CP2PHost*>(Param);
-
-    if (Host)
-    {
-        Ret = Host->RecvTCPPacketProcess(Packet);
-    }
-
-    return Ret;
-}
-
-VOID CP2PHost::TCPEndProcessDelegate(CTCPBase* tcp, CBaseObject* Param)
-{
-    UNREFERENCED_PARAMETER(tcp);
-
-    CP2PHost* Host = dynamic_cast<CP2PHost*>(Param);
-
-    if (Host)
-    {
-        Host->TCPEndProcess();
-    }
-
-    return;
-}
-
-
-BOOL CP2PHost::RecvUDPPacketProcess(UDP_PACKET* Packet)
-{
-    BOOL Ret = TRUE;
-    switch (Packet->BasePacket.type)
-    {
-        case UPT_HANDSHAKE:
-        {
-            DWORD Peerid;
-            memcpy(&Peerid, Packet->BasePacket.data, sizeof(DWORD));
-
-            DBG_TRACE("Recv %s packet from %s: %d\r\n", UDPTypeToString(UPT_HANDSHAKE), inet_ntoa(Packet->PacketInfo.ipaddr), ntohs(Packet->PacketInfo.port));
-            DBG_TRACE("===> Peerid %d\r\n", Peerid);
-            
-            if (Peerid == m_dwPeerid)
-            {
-                DBG_TRACE("===> Send %s Packet to guest\r\n", UDPTypeToString(UPT_KEEPALIVE));
-                SendUDPToPeer(UPT_KEEPALIVE);
-            }
-            else
-            {
-                DBG_ERROR("===> Peerid mismatch, skip this packet\r\n");
-            }
-            break;
-        }
-
-        case UPT_KEEPALIVE:
-        {
-            DWORD Peerid;
-            memcpy(&Peerid, Packet->BasePacket.data, sizeof(DWORD));
-
-            DBG_TRACE("Recv %s packet from %s: %d\r\n", UDPTypeToString(UPT_KEEPALIVE), inet_ntoa(Packet->PacketInfo.ipaddr), ntohs(Packet->PacketInfo.port));
-            DBG_TRACE("===> Peerid %d\r\n", Peerid);
-
-            if (Peerid == m_dwPeerid)
-            {
-                if (m_eStatus == P2P_PUNCHING)
-                {
-                    BASE_PACKET_T* P2PSuccess = CreateP2PSuccessPkt(m_dwTCPid, m_szKeyword);
-                    m_pTCP->SendPacket(P2PSuccess);
-                }
-            }
-            else
-            {
-                DBG_ERROR("===> Peerid mismatch, skip this packet\r\n");
-            }
-            break;
-        }
-    }
-
-    return Ret;
+    LeaveCriticalSection(&m_csTCPLock);
 }
 
 BOOL CP2PHost::RecvTCPPacketProcess(BASE_PACKET_T* Packet)
@@ -317,6 +136,9 @@ BOOL CP2PHost::RecvTCPPacketProcess(BASE_PACKET_T* Packet)
             TCP_INIT_PACKET* Data = (TCP_INIT_PACKET*)Packet->Data;
             m_dwTCPid = Data->tcpid;
             m_dwServerUDPPort = Data->UDPPort;
+
+            m_dwPeerid = 0;
+            m_eType = PCT_NONE;
 
             DBG_TRACE("Recv %s packet from server\r\n", TCPTypeToString(TPT_INIT));
             DBG_TRACE("===> Tcpid %d udpport %d\r\n", m_dwTCPid, m_dwUDPPort);
@@ -345,9 +167,7 @@ BOOL CP2PHost::RecvTCPPacketProcess(BASE_PACKET_T* Packet)
                 }
                 else
                 {
-                    DBG_ERROR("===> State is not P2P_TCP_LISTENING, Peer reset\r\n");
-                    m_dwErrorCode = P2P_PEER_RESET;
-                    SetEvent(m_hStopEvent);
+                    DBG_ERROR("===> State is not P2P_TCP_LISTENING, skip this packet\r\n");
                 }
             }
             break;
@@ -418,6 +238,11 @@ BOOL CP2PHost::RecvTCPPacketProcess(BASE_PACKET_T* Packet)
             }
             break;
         }
+        case TPT_RESET:
+        {
+            DBG_TRACE("Recv %s packet from server\r\n", TCPTypeToString(TPT_RESET));
+            SetEvent(m_hStopEvent);
+        }
         default:
         {
             break;
@@ -426,9 +251,3 @@ BOOL CP2PHost::RecvTCPPacketProcess(BASE_PACKET_T* Packet)
     return Ret;
 }
 
-VOID CP2PHost::TCPEndProcess()
-{
-    DBG_INFO("TCP Disconnect\r\n");
-    m_dwErrorCode = P2P_TCP_CONNECT_ERROR;
-    SetEvent(m_hStopEvent);
-}

@@ -5,6 +5,7 @@ static char* TCPTypeName[] = {
     "TPT_INIT",
     "TPT_WAITING",
     "TPT_WAIT_RESULT",
+    "TPT_RESET",
     "TPT_CONNECT",
     "TPT_CONNECT_RESULT",
     "TPT_START_UDP",
@@ -33,6 +34,7 @@ static char* UDPTypeName[] = {
     "UPT_KEEPALIVE",
     "UPT_P2P_SUCCESS",
     "UPT_KCP",
+    "UPT_ENET",
     "UPT_MAX",
 };
 

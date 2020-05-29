@@ -24,21 +24,10 @@ public:
 
     DWORD Connect();
 
-private:
-    BOOL StartConnect();
-    VOID Clearup();
-    
-    static BOOL RecvUDPPacketProcessDelegate(UDP_PACKET* Packet, CUDPBase* udp, CBaseObject* Param);
-    static BOOL RecvTCPPacketProcessDelegate(BASE_PACKET_T* Packet, CTCPBase* tcp, CBaseObject* Param);
-    static VOID TCPEndProcessDelegate(CTCPBase* tcp, CBaseObject* Param);
-
-    BOOL RecvUDPPacketProcess(UDP_PACKET* Packet);
-    BOOL RecvTCPPacketProcess(BASE_PACKET_T* Packet);
-    VOID TCPEndProcess();
+private:  
+    virtual BOOL RecvTCPPacketProcess(BASE_PACKET_T* Packet);
     
     VOID TCPConnectEventProcess();
-    VOID UDPConnectEventProccess();
-    VOID UDPPunchEventProcess();
 };
 
 #endif

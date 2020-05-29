@@ -107,6 +107,7 @@
       <OptimizeReferences>true</OptimizeReferences>
       <AdditionalDependencies>enet.lib;winmm.lib;ws2_32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(SolutionDir)/3rdparty/enet/enet-1.3.15/Release</AdditionalLibraryDirectories>
+      <IgnoreSpecificDefaultLibraries>libcmt</IgnoreSpecificDefaultLibraries>
     </Link>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

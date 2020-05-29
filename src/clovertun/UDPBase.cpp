@@ -142,19 +142,38 @@ BOOL CUDPBase::Init(WORD UdpPort)
     WSAIoctl(m_hSock, SIO_UDP_CONNRESET, &bNewBehavior, sizeof(bNewBehavior), NULL, 0, &dwBytesReturned, NULL, NULL);
 #endif
 
+    return TRUE;
+}
+
+VOID CUDPBase::Start()
+{
+    ResetEvent(m_hStopEvent);
+
+    if (m_hSendThread)
+    {
+        CloseHandle(m_hSendThread);
+        m_hSendThread = NULL;
+    }
+
+    if (m_hRecvThread)
+    {
+        CloseHandle(m_hRecvThread);
+        m_hRecvThread = NULL;
+    }
+
     AddRef();
     m_hSendThread = CreateThread(NULL, 0, CUDPBase::SendProc, this, 0, NULL);
 
     AddRef();
     m_hRecvThread = CreateThread(NULL, 0, CUDPBase::RecvProc, this, 0, NULL);
 
-    return TRUE;
+    return;
 }
 
-VOID CUDPBase::Done()
+VOID CUDPBase::Stop()
 {
-    SetEvent(m_hStopEvent);
     RegisterRecvProcess(NULL, NULL);
+    SetEvent(m_hStopEvent);
 }
 
 VOID CUDPBase::RegisterRecvProcess(_UDPRecvPacketProcess Process, CBaseObject* Param)
@@ -213,9 +232,15 @@ BOOL CUDPBase::RecvProcess(HANDLE StopEvent)
         return FALSE;
     }
 
+    if (Length != sizeof(UDPBASE_PACKET))
+    {
+        DBG_ERROR("length error, skip this packet\r\n");
+        return TRUE;
+    }
+
     if (!IsCheckSumVaild(Packet.BasePacket))
     {
-        DBG_ERROR("check sum error\r\n");
+        DBG_ERROR("check sum error, skip this packet\r\n");
         return TRUE;
     }
 

@@ -125,10 +125,27 @@ int main(int argc,char * argv[])
     }
     else if (isHost)
     {
-        CP2PHost* host = new CP2PHost(name, keyword, addr, (WORD)port);
-        host->RegisterRecvPacketProcess(P2PRecvPacketProcess, host);
-        DWORD ErrorCode = host->Listen();
-        DBG_ERROR("Host Run %s\r\n", P2PErrorToString(ErrorCode));
+        CP2PHost* host = NULL;
+        
+        while (TRUE)
+        {
+            if (host != NULL)
+            {
+                host->WaitForStop();
+                host->Close();
+                host->Release();
+                host = NULL;
+
+            }
+            
+            host = new CP2PHost(name, keyword, addr, (WORD)port);
+            host->RegisterRecvPacketProcess(P2PRecvPacketProcess, host);
+            DWORD ErrorCode = host->Listen();
+            DBG_ERROR("Host Listen %s\r\n", P2PErrorToString(ErrorCode));
+            ErrorCode = host->Accept();
+            DBG_ERROR("Host Accept %s\r\n", P2PErrorToString(ErrorCode));
+        }
+        
     }
     else if (isGuest)
     {

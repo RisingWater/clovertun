@@ -35,6 +35,23 @@ CENetClient::~CENetClient()
 		CloseHandle(m_hMainThread);
 	}
 
+    EnterCriticalSection(&m_csSendLock);
+
+    while (!m_SendList.empty())
+    {
+        ENetPacket* packet = m_SendList.front();
+        m_SendList.pop_front();
+        enet_packet_destroy(packet);
+    }
+
+    LeaveCriticalSection(&m_csSendLock);
+
+    if (m_pENetHost)
+    {
+        enet_host_destroy(m_pENetHost);
+        m_pENetHost = NULL;
+    }
+
     DeleteCriticalSection(&m_csSendLock);
     DeleteCriticalSection(&m_csLock);
 }
@@ -90,16 +107,20 @@ BOOL CENetClient::Init()
 
 VOID CENetClient::Done()
 {
+    RegisterRecvProcess(NULL, NULL);
     SetEvent(m_hStopEvent);
 }
 
 VOID CENetClient::SendPacket(PBYTE Data, DWORD Length)
 {
-    ENetPacket* packet = enet_packet_create(Data, Length, ENET_PACKET_FLAG_RELIABLE);
+    if (WaitForSingleObject(m_hStopEvent, 0) == WAIT_TIMEOUT)
+    {
+        ENetPacket* packet = enet_packet_create(Data, Length, ENET_PACKET_FLAG_RELIABLE);
 
-    EnterCriticalSection(&m_csSendLock);
-	m_SendList.push_back(packet);
-	LeaveCriticalSection(&m_csSendLock);
+        EnterCriticalSection(&m_csSendLock);
+        m_SendList.push_back(packet);
+        LeaveCriticalSection(&m_csSendLock);
+    }
 }
 
 VOID CENetClient::RegisterRecvProcess(_ENetRecvPacketProcess Process, CBaseObject* Param)
@@ -135,7 +156,7 @@ DWORD WINAPI CENetClient::MainProc(void* pParam)
 		}
 	}
     
-    DBG_INFO("CKCPClient: Recv Thread Stop\r\n");
+    DBG_INFO("CENetClient: Main Thread Stop\r\n");
 
 	tcp->Release();
 
@@ -145,6 +166,12 @@ DWORD WINAPI CENetClient::MainProc(void* pParam)
 BOOL CENetClient::ENetProcess(HANDLE StopEvent)
 {
     UNREFERENCED_PARAMETER(StopEvent);
+    
+    if (WaitForSingleObject(StopEvent, 0) != WAIT_TIMEOUT)
+    {
+        return FALSE;
+    }
+
     ENetEvent event;
     int ret = enet_host_service(m_pENetHost, &event, 20);
             
@@ -189,6 +216,7 @@ BOOL CENetClient::ENetProcess(HANDLE StopEvent)
                 {
                     m_pENetPeer = NULL;
                     DBG_INFO("disconnected.\n");
+                    return FALSE;
                 }
                 break;
             }

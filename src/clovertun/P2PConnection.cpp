@@ -57,7 +57,7 @@ void CP2PConnection::DumpP2PConnection(char* message)
         DBG_TRACE("%s\n", message);
     }
     DBG_TRACE("P2PConnection [%s] State %s\r\n", m_szKeyword, P2PStatusToString(m_eStatus));
-    DBG_TRACE("===> Host[%s] tcpid %d udp\r\n", m_szMainTCPName, m_dwMainTCPID);
+    DBG_TRACE("===> Host[%s] tcpid %d\r\n", m_szMainTCPName, m_dwMainTCPID);
 
     memset(AddrTmp, 0, 512);
     m_pMainTCPServer->GetDstPeer(AddrTmp, 512, &PortTmp);
@@ -288,7 +288,7 @@ VOID CP2PConnection::ConnTCPDisconnect()
 
     DumpP2PConnection("P2PConnection Guest Disconnected");
 
-    BASE_PACKET_T* Reply = CreateTCPResultPkt(TPT_WAIT_RESULT, m_dwMainTCPID, 0);
+    BASE_PACKET_T* Reply = CreateTCPResultPkt(TPT_RESET, m_dwMainTCPID, 0);
     m_pMainTCPServer->SendPacket(Reply);
 
     LeaveCriticalSection(&m_csLock);
